@@ -948,9 +948,10 @@ const DELETE_GROWTH: f32 = 1.2;
 /// letter where a slow slide of the same length takes several.
 const DELETE_RAMP_MS: f32 = 350.0;
 
-/// The reach, as a percent of the keyboard's width from the edge a delete
-/// swipe came in from, at which the characters it takes on the way keep the
-/// pace [`DELETE_FIRST`] and [`DELETE_GROWTH`] set.
+/// How far a delete swipe has to reach for everything before the cursor to
+/// go, as a percent of the keyboard's width from the edge it came in from,
+/// when the settings say nothing, and the percent at which the characters it
+/// takes on the way keep the pace [`DELETE_FIRST`] and [`DELETE_GROWTH`] set.
 pub const DELETE_ALL_PERCENT: u32 = 80;
 
 /// The least a delete swipe may be set to reach: the start zone is the
@@ -1001,7 +1002,7 @@ pub struct Gestures {
 
 impl Default for Gestures {
     fn default() -> Self {
-        Self { delete_from_left: false, delete_all_percent: DELETE_ALL_OFF }
+        Self { delete_from_left: false, delete_all_percent: DELETE_ALL_PERCENT }
     }
 }
 
@@ -2303,8 +2304,7 @@ mod tests {
     #[test]
     fn a_slide_reaching_the_set_distance_deletes_everything_and_sliding_back_puts_back() {
         let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
-        assert_eq!(keyboard.gestures.delete_all_percent, DELETE_ALL_OFF, "off unless set");
-        keyboard.gestures.delete_all_percent = 80;
+        assert_eq!(keyboard.gestures.delete_all_percent, 80);
         // The reach is 806 from the right edge: x = 202.
         let actions = slide_to(&mut keyboard, &[(900.0, 100), (600.0, 400), (300.0, 500), (250.0, 600), (150.0, 700), (100.0, 800)]);
         assert!(matches!(actions[0], Action::Delete { started: true, .. }), "{:?}", actions[0]);
@@ -2325,7 +2325,6 @@ mod tests {
     #[test]
     fn a_slide_reaching_the_distance_in_its_first_move_starts_with_deleting_everything() {
         let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
-        keyboard.gestures.delete_all_percent = 80;
         let actions = slide_to(&mut keyboard, &[(100.0, 100), (50.0, 200)]);
         assert_eq!(actions[0], Action::DeleteAll { started: true });
         assert_eq!(actions[1], Action::Nothing);

@@ -40,7 +40,7 @@ Sechsecke füllen eine Fläche lückenlos, daher kann jede Taste so groß sein, 
 | Auf der Leertaste zur Seite wischen | Wechselt die Sprache |
 | Die Leertaste halten und bewegen | Lenkt den Cursor durch den Text, auch nach oben und unten |
 | Vom Rand der Zahlenreihe hineinziehen | Löscht beim Ziehen, je weiter und langsamer, desto mehr; zurückziehen, um es wiederherzustellen |
-| Bis zur eingestellten Distanz ziehen, wenn eine eingestellt ist | Löscht alles vor dem Cursor; wieder zurückziehen, um es wiederzuholen |
+| Bis zur eingestellten Distanz ziehen (80 % der Breite) | Löscht alles vor dem Cursor; wieder zurückziehen, um es wiederzuholen |
 | In der Mitte der Zahlenreihe ziehen | Bewegt den Cursor, ein Zeichen pro Schritt |
 | Umschalt- oder Rücktaste halten (die optionalen Tasten) | Sperrt Großbuchstaben oder löscht wiederholt |
 
@@ -53,7 +53,7 @@ Sechsecke füllen eine Fläche lückenlos, daher kann jede Taste so groß sein, 
 - **Zwischenablage**: Das gerade Kopierte wartet in der Leiste auf ein Einfügen mit einem Tipp; Einträge bleiben eine Stunde, angeheftet dauerhaft.
 - **Emoji** mit Suche nach Namen in jeder Sprache, die du verwendest.
 - **Designs**: Dämmerung, Papier, Glut, sieben weitere dunkle (Mitternacht, Aurora, Mokka, Wald, Abgrund, Pflaume, Nordisch), die Farben deines Geräts (ab Android 12), schlicht dunkel und schlicht hell. Die Start-Designs färben jeden Buchstaben nach seiner QWERTZ-Reihe, damit verschobene Buchstaben leicht zu finden bleiben.
-- **Zwei Layouts**: Leertaste unten (Standard) oder Leertaste in der Mitte. Im Layout mit der Leertaste in der Mitte ist die Taste links davon das Komma oder eine von Rücktaste, Emoji, Zwischenablage, Diktat, Tastatur ausblenden oder eine zweite Leertaste.
+- **Zwei Layouts**: Leertaste in der Mitte (Standard) oder Leertaste unten. Im Layout mit der Leertaste in der Mitte ist die Taste links davon das Komma oder eine von Rücktaste, Emoji, Zwischenablage, Diktat, Tastatur ausblenden oder eine zweite Leertaste.
 - **Größen**: Die ganze Tastatur, die Buchstabentasten und die Zahlenreihe lassen sich einzeln skalieren, und die Zahlenreihe kann entfallen.
 - **Englisch und Deutsch**: Die App und ihre Hilfe sprechen Englisch, und Deutsch, wenn umgestellt.
 
@@ -67,9 +67,9 @@ Alles findest du in den Einstellungen der Tastatur, die sich über das App-Symbo
 | Autokorrektur | Aus, Eindeutige, Alle (Standard) |
 | Neue Wörter lernen | Aus (Standard), an; Vergessen löscht das Gelernte |
 | Löschen durch Ziehen von | Linker Rand, rechter Rand (Standard) |
-| So weit ziehen, um alles zu löschen | Aus (Standard), oder 50 % bis 100 % der Breite; ein kürzeres Ziehen löscht unterwegs ebenfalls mehr Zeichen, 100 % ist Aus und lässt das Ziehen wie früher, wobei Verweilen auf der anderen Seite ganze Wörter löscht |
+| So weit ziehen, um alles zu löschen | 50 % bis 100 % der Breite (standardmäßig 80 %); ein kürzeres Ziehen löscht unterwegs ebenfalls mehr Zeichen, 100 % ist Aus und lässt das Ziehen wie früher, wobei Verweilen auf der anderen Seite ganze Wörter löscht |
 | Spracheingabe | Aus (Standard), oder An, was das Sprachmodell einmalig herunterlädt (670 MB) |
-| Layout | Leertaste unten (Standard), Leertaste in der Mitte |
+| Layout | Leertaste in der Mitte (Standard), Leertaste unten |
 | Taste links der Leertaste | Komma (Standard), Rücktaste, Emoji, Zwischenablage, Diktat, Tastatur ausblenden, zweite Leertaste; nur im Layout mit der Leertaste in der Mitte |
 | Umschalt- und Rücktaste | Aus (Standard), an; ohne Zahlenreihe immer vorhanden |
 | Design | Eines der oben genannten Designs (standardmäßig Dämmerung) |

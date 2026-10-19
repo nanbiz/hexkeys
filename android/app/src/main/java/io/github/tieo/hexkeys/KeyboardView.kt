@@ -1240,12 +1240,12 @@ class KeyboardView(
         /** Width of the delete edge kept from the back gesture, in dp. */
         private const val EXCLUSION_WIDTH = 32
 
-        /** Preference naming the letter layout: [SPACE_MIDDLE] or, unless chosen, [SPACE_BOTTOM]. */
+        /** Preference naming the letter layout: [SPACE_BOTTOM] or, unless chosen, [SPACE_MIDDLE]. */
         const val LAYOUT = "layout"
         const val SPACE_MIDDLE = "space_middle"
         const val SPACE_BOTTOM = "hexkeys"
 
-        fun spaceMiddle(preferences: android.content.SharedPreferences) = preferences.getString(LAYOUT, null) == SPACE_MIDDLE
+        fun spaceMiddle(preferences: android.content.SharedPreferences) = preferences.getString(LAYOUT, null) != SPACE_BOTTOM
 
         /**
          * Preference naming the key left of space in the middle layout, one of
@@ -1260,11 +1260,11 @@ class KeyboardView(
 
         /**
          * Preference: how far a delete slide reaches to delete everything, in percent of the
-         * width from the edge it comes in from; [DELETE_ALL_OFF], the default, for never. The
-         * same numbers as the core's `DELETE_ALL_LEAST` and `DELETE_ALL_OFF`.
+         * width from the edge it comes in from; [DELETE_ALL_OFF] for never. The same numbers
+         * as the core's `DELETE_ALL_PERCENT`, `DELETE_ALL_LEAST` and `DELETE_ALL_OFF`.
          */
         const val DELETE_ALL = "delete_all_percent"
-        const val DELETE_ALL_DEFAULT = 100
+        const val DELETE_ALL_DEFAULT = 80
         const val DELETE_ALL_LEAST = 50
         const val DELETE_ALL_OFF = 100
 

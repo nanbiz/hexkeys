@@ -637,7 +637,7 @@ pub extern "system" fn Java_io_github_tieo_hexkeys_Core_configure(
 ) {
     let gestures = &mut keyboard(handle).gestures;
     gestures.delete_from_left = delete_from_left != 0;
-    gestures.delete_all_percent = u32::try_from(delete_all_percent).unwrap_or(hexkeys::DELETE_ALL_OFF);
+    gestures.delete_all_percent = u32::try_from(delete_all_percent).unwrap_or(hexkeys::DELETE_ALL_PERCENT);
 }
 
 /// The accented letters of the lexicon's languages by plain letter, as

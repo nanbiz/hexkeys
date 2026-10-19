@@ -40,7 +40,7 @@ Hexagons tile a surface with no gaps, so every key can be as large as the screen
 | Flick sideways on space | Switches the language |
 | Hold space and move | Steers the cursor through the text, up and down too |
 | Slide in from the edge of the number row | Deletes as you slide, more the farther and the slower; slide back to put it back |
-| Slide to the set distance, when one is set | Deletes everything before the cursor; slide back out to bring it back |
+| Slide to the set distance (80% of the width) | Deletes everything before the cursor; slide back out to bring it back |
 | Slide along the middle of the number row | Moves the cursor, one character per step |
 | Hold shift or backspace (the optional keys) | Locks capitals, or deletes again and again |
 
@@ -53,7 +53,7 @@ Hexagons tile a surface with no gaps, so every key can be as large as the screen
 - **Clipboard**: what you just copied waits in the strip for a one-tap paste; clips stay an hour, or for good once pinned.
 - **Emoji** with search by name in every language you use.
 - **Themes**: Dusk, Paper, Ember, seven more dark ones (Midnight, Aurora, Mocha, Forest, Abyss, Plum, Nordic), your device's colours (Android 12 and later), plain dark and plain light. The starter themes colour each letter by its QWERTZ row, so rearranged letters stay easy to find.
-- **Two layouts**: space at the bottom (the default) or space in the middle. In the middle layout the key left of space is the comma, or one of backspace, emoji, clipboard, dictation, hide keyboard or a second space.
+- **Two layouts**: space in the middle (the default) or space at the bottom. In the middle layout the key left of space is the comma, or one of backspace, emoji, clipboard, dictation, hide keyboard or a second space.
 - **Sizes**: the whole keyboard, the letter keys and the number row scale on their own, and the number row can be left out.
 - **English and German**: the app and its help speak English, and German when switched.
 
@@ -67,9 +67,9 @@ Everything is under the keyboard's settings, which open from the app icon or the
 | Autocorrect | Off, Obvious, All (default) |
 | Learn new words | Off (default), on; Forget deletes what was learned |
 | Delete by sliding in from | Left edge, right edge (default) |
-| Slide this far to delete everything | Off (default), or 50% to 100% of the width; a shorter distance also deletes more characters on the way, 100% is Off and keeps the slide as it was, where resting at the far side deletes whole words |
+| Slide this far to delete everything | 50% to 100% of the width (80% by default); a shorter distance also deletes more characters on the way, 100% is Off and keeps the slide as it was, where resting at the far side deletes whole words |
 | Voice | Off (default), or On, which downloads the speech model once (670 MB) |
-| Layout | Space at the bottom (default), space in the middle |
+| Layout | Space in the middle (default), space at the bottom |
 | Key left of space | Comma (default), backspace, emoji, clipboard, dictation, hide keyboard, second space; only in the middle layout |
 | Shift and backspace keys | Off (default), on; always there without a number row |
 | Theme | Any of the themes above (Dusk by default) |
