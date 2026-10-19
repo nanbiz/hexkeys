@@ -456,7 +456,7 @@ class KeyboardView(
         }
         Core.configure(
             handle, preferences.getBoolean(DELETE_FROM_LEFT, false),
-            preferences.getInt(DELETE_PRECISE, DELETE_PRECISE_DEFAULT), preferences.getInt(DELETE_ALL, DELETE_ALL_DEFAULT),
+            preferences.getInt(DELETE_WORDS, DELETE_WORDS_DEFAULT), preferences.getInt(DELETE_ENDLESS, DELETE_ENDLESS_DEFAULT),
         )
         setMeasuredDimension(width, keysTop + Core.height(handle).toInt() + navigationBar)
     }
@@ -629,21 +629,19 @@ class KeyboardView(
             val fromLeft = Dictionaries.preferences(context).getBoolean(DELETE_FROM_LEFT, false)
             fun at(fromEdge: Float) = if (fromLeft) fromEdge else width - fromEdge
             val bottom = Core.height(handle)
-            val (precise, all) = Core.deleteBorders(handle).let { it[0] to it[1] }
-            val starts = floatArrayOf(0f, precise, all, width.toFloat())
+            val (words, endless) = Core.deleteBorders(handle).let { it[0] to it[1] }
+            val starts = floatArrayOf(0f, words, endless, width.toFloat())
             for (zone in 0..2) {
                 if (starts[zone] >= starts[zone + 1]) continue
                 deletePaint.color = DELETE_ZONE_COLORS[zone] and 0x00FFFFFF or (0x18 shl 24)
                 canvas.drawRect(minOf(at(starts[zone]), at(starts[zone + 1])), 0f, maxOf(at(starts[zone]), at(starts[zone + 1])), bottom, deletePaint)
             }
-            // The wash runs from the edge to the finger, each zone it crossed in its colour;
-            // in the everything zone it snaps across the whole keyboard: all of it goes.
-            val everything = deleting[2].toInt() == 2
-            val reached = if (everything) width.toFloat() else if (fromLeft) deleting[1] else width - deleting[1]
+            // The wash runs from the edge to the finger, each zone it crossed in its colour.
+            val reached = if (fromLeft) deleting[1] else width - deleting[1]
             for (zone in 0..2) {
-                val end = if (everything) starts[zone + 1] else minOf(starts[zone + 1], reached)
+                val end = minOf(starts[zone + 1], reached)
                 if (starts[zone] >= end) continue
-                deletePaint.color = DELETE_ZONE_COLORS[if (everything) 2 else zone]
+                deletePaint.color = DELETE_ZONE_COLORS[zone]
                 canvas.drawRect(minOf(at(starts[zone]), at(end)), 0f, maxOf(at(starts[zone]), at(end)), bottom, deletePaint)
             }
         }
@@ -1274,21 +1272,32 @@ class KeyboardView(
         const val DELETE_FROM_LEFT = "delete_from_left"
 
         /**
-         * Preferences: where a delete slide's growing zone starts, after the precise one,
-         * and where its everything zone starts, in percent of the width from the edge it
-         * comes in from; [DELETE_ALL_OFF] for no everything zone. The same numbers as the
-         * core's `DELETE_PRECISE_PERCENT`, `DELETE_PRECISE_LEAST`, `DELETE_ALL_PERCENT`,
-         * `DELETE_GROWING_LEAST` and `DELETE_ALL_OFF`.
+         * Preferences: where a delete slide's words zone starts, after the letters zone,
+         * and where its endless zone starts, in percent of the width from the edge it
+         * comes in from; [DELETE_ENDLESS_OFF] for no endless zone. The same numbers as
+         * the core's `DELETE_WORDS_PERCENT`, `DELETE_WORDS_LEAST`, `DELETE_ENDLESS_PERCENT`,
+         * `DELETE_WORDS_ROOM` and `DELETE_ENDLESS_OFF`.
          */
-        const val DELETE_PRECISE = "delete_precise_percent"
-        const val DELETE_PRECISE_DEFAULT = 45
-        const val DELETE_PRECISE_LEAST = 40
-        const val DELETE_ALL = "delete_all_percent"
-        const val DELETE_ALL_DEFAULT = 90
-        const val DELETE_GROWING_LEAST = 10
-        const val DELETE_ALL_OFF = 100
+        const val DELETE_WORDS = "delete_words_percent"
+        const val DELETE_WORDS_DEFAULT = 45
+        const val DELETE_WORDS_LEAST = 40
+        const val DELETE_ENDLESS = "delete_endless_percent"
+        const val DELETE_ENDLESS_DEFAULT = 90
+        const val DELETE_WORDS_ROOM = 10
+        const val DELETE_ENDLESS_OFF = 100
 
-        /** The zones' colours, precise, growing and everything: amber, orange and red, ever stronger. */
+        /**
+         * Preferences: the last words the letters zone deletes letter by letter, and the
+         * last words the slide has deleted by the words zone's far end.
+         */
+        const val DELETE_LETTER_WORDS = "delete_letter_words"
+        const val DELETE_LETTER_WORDS_DEFAULT = 3
+        val DELETE_LETTER_WORDS_RANGE = 1..6
+        const val DELETE_WORD_WORDS = "delete_word_words"
+        const val DELETE_WORD_WORDS_DEFAULT = 10
+        val DELETE_WORD_WORDS_RANGE = 2..30
+
+        /** The zones' colours, letters, words and endless: amber, orange and red, ever stronger. */
         val DELETE_ZONE_COLORS = intArrayOf(0x50F5A524, 0x60F0703A, 0x80E5484D.toInt())
 
         /**

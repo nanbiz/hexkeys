@@ -81,7 +81,7 @@ class HexInputMethod : InputMethodService() {
                 emojiSearch = null
             }
             Theme.KEY -> keyboard?.theme = Theme.current(this)
-            KeyboardView.LAYOUT, KeyboardView.LEFT_KEY, KeyboardView.DELETE_FROM_LEFT, KeyboardView.DELETE_PRECISE, KeyboardView.DELETE_ALL, KeyboardView.EDIT_KEYS,
+            KeyboardView.LAYOUT, KeyboardView.LEFT_KEY, KeyboardView.DELETE_FROM_LEFT, KeyboardView.DELETE_WORDS, KeyboardView.DELETE_ENDLESS, KeyboardView.EDIT_KEYS,
             KeyboardView.SIZE_ALL, KeyboardView.SIZE_KEYS, KeyboardView.SIZE_NUMBERS, KeyboardView.NUMBER_ROW ->
                 keyboard?.requestLayout()
             Dictionaries.LEARNED_RESET -> {
@@ -218,16 +218,18 @@ class HexInputMethod : InputMethodService() {
 
     /**
      * One step of a delete slide, on the field or on the emoji search's
-     * query alike: `text` is how many characters and then words the slide
-     * has taken so far, and whether it just started. `undo` is a correction
-     * made right before, which the first character takes back, and
-     * `justSwiped` a word just swiped, which goes whole as the first one.
+     * query alike: `text` is how far the slide has come through its letters
+     * zone and its words zone, in thousandths, how many words its endless
+     * zone has taken, and whether it just started. The letters zone takes
+     * the letters of the last few words one by one, the words zone whole
+     * words up to the last several, the endless zone words beyond them, as
+     * [KeyboardView.DELETE_LETTER_WORDS] and [KeyboardView.DELETE_WORD_WORDS]
+     * set. `undo` is a correction made right before, which the first letter
+     * takes back, and `justSwiped` a word just swiped, which goes whole as
+     * the first one.
      */
     private fun slide(target: TextTarget, text: String, undo: Correction?, justSwiped: String?) {
-        val (slidCharacters, slidWords, started) = text.split(" ").map { it.toInt() }
-        if (started == 1) everything.clear()
-        // Back out of the reach for deleting everything: all of it comes back first.
-        putBackEverything(target)
+        val (letters, wordsThrough, endless, started) = text.split(" ").map { it.toInt() }
         var before = target.textBefore()
         if (started == 1) {
             deleted.clear()
@@ -235,8 +237,13 @@ class HexInputMethod : InputMethodService() {
             swipedBeforeDelete = justSwiped?.takeIf { before.endsWith(it) }
             slideUndo = undo?.takeIf { before.endsWith(it.inserted) }
             slideUndone = false
-            characterPeak = Peak()
             wordPeak = Peak()
+            // The zones' spans, from the text as the slide starts.
+            val preferences = Dictionaries.preferences(this)
+            val letterWords = preferences.getInt(KeyboardView.DELETE_LETTER_WORDS, KeyboardView.DELETE_LETTER_WORDS_DEFAULT)
+            val wordWords = preferences.getInt(KeyboardView.DELETE_WORD_WORDS, KeyboardView.DELETE_WORD_WORDS_DEFAULT)
+            slideLetters = characterCount(lastWords(before, letterWords))
+            slideWords = maxOf(0, wordWords - letterWords)
         }
         val word = swipedBeforeDelete
         target.beginBatch()
@@ -244,10 +251,13 @@ class HexInputMethod : InputMethodService() {
         // what was typed comes back, as backspace brings it back, and sliding
         // back to the start puts the correction in again.
         val undoing = slideUndo
-        val askedCharacters = if (undoing == null) slidCharacters else slidCharacters - 1
-        val characters = characterPeak.scaled(askedCharacters)
-        val words = wordPeak.scaled(slidWords)
-        if (undoing != null && askedCharacters >= 0 && !slideUndone) {
+        // Any way into the letters zone takes a letter; its far end takes them all.
+        val slid = if (letters == 0) 0 else maxOf(1, Math.round(letters / 1000f * slideLetters))
+        val characters = if (undoing == null) slid else slid - 1
+        // The text can run out within the words zone; the endless zone's words come on top.
+        val askedWords = Math.round(wordsThrough / 1000f * slideWords)
+        val words = wordPeak.scaled(askedWords) + endless
+        if (undoing != null && characters >= 0 && !slideUndone) {
             undoCorrection(undoing)
             slideUndone = true
             before = target.textBefore()
@@ -290,9 +300,8 @@ class HexInputMethod : InputMethodService() {
             if (before.isEmpty()) before = target.textBefore()
             deleted.addLast(piece)
         }
-        characterPeak.reached(askedCharacters, deletedCharacters)
-        wordPeak.reached(slidWords, deleted.size - deletedCharacters)
-        if (undoing != null && askedCharacters < 0 && slideUndone) {
+        wordPeak.reached(askedWords, minOf(deleted.size - deletedCharacters, askedWords))
+        if (undoing != null && characters < 0 && slideUndone) {
             target.deleteBefore(undoing.typed.length)
             target.commit(undoing.inserted)
             keptEnd = -1
@@ -304,8 +313,8 @@ class HexInputMethod : InputMethodService() {
     }
 
     /**
-     * The most characters or words a delete slide has asked for, and how many
-     * it then had deleted. The core counts on past the end of the text; coming
+     * The most words a delete slide's words zone has asked for, and how many
+     * it then had deleted. The zone counts on past the end of the text; coming
      * back from there puts back what was really deleted in the same proportion.
      */
     private class Peak {
@@ -322,60 +331,23 @@ class HexInputMethod : InputMethodService() {
         }
     }
 
-    private var characterPeak = Peak()
     private var wordPeak = Peak()
 
-    /**
-     * What a delete slide that reached far enough took at once, a read of the field's
-     * text at a time, the nearest the cursor first; empty while it has not.
-     */
-    private val everything = ArrayDeque<String>()
+    /** The characters the letters zone of the slide under way spans, and the words its words zone does. */
+    private var slideLetters = 0
+    private var slideWords = 0
 
-    /** Deletes all the text before the cursor, and the selection with it, keeping it to put back. */
-    private fun deleteEverything(target: TextTarget, started: Boolean) {
-        // A slide that reaches this far in its first move starts here, with nothing of an earlier one left.
-        if (started) {
-            everything.clear()
-            deleted.clear()
-            deletedCharacters = 0
-            swipedBeforeDelete = null
-            slideUndo = null
-            slideUndone = false
-            characterPeak = Peak()
-            wordPeak = Peak()
-        }
-        if (everything.isNotEmpty()) return
-        target.beginBatch()
-        if (deleted.isEmpty()) {
-            val selected = target.selectedText()
-            if (selected.isNotEmpty()) {
-                target.commit("")
-                everything.addLast(selected)
-            }
-        }
-        // The copy of the text is cut short at the front: delete it and read on.
-        for (read in 0 until EVERYTHING_READS) {
-            val before = target.textBefore()
-            if (before.isEmpty()) break
-            target.deleteBefore(before.length)
-            everything.addLast(before)
-        }
-        target.endBatch()
-        // The strip shows the end of what went, which is what a slide through the text would have shown last.
-        val tail = StringBuilder()
-        for (chunk in everything) {
-            tail.insert(0, chunk)
-            if (tail.length >= EVERYTHING_SHOWN) break
-        }
-        keyboard?.deletedText = tail.toString() + deleted.reversed().joinToString("")
-    }
+    /** The last `count` words of `text`, with the spaces after them. */
+    private fun lastWords(text: String, count: Int): String =
+        Regex("(\\S+\\s*){1,$count}$").find(text)?.value ?: text.takeLast(text.length - text.trimEnd().length)
 
-    /** Puts back what [deleteEverything] took, the text farthest from the cursor first. */
-    private fun putBackEverything(target: TextTarget) {
-        if (everything.isEmpty()) return
-        target.beginBatch()
-        while (everything.isNotEmpty()) target.commit(everything.removeLast())
-        target.endBatch()
+    /** Characters as the reader sees them: a whole emoji or letter with its marks counts once. */
+    private fun characterCount(text: String): Int {
+        val breaks = java.text.BreakIterator.getCharacterInstance()
+        breaks.setText(text)
+        var count = 0
+        while (breaks.next() != java.text.BreakIterator.DONE) count += 1
+        return count
     }
 
     /** The correction the delete slide under way started right after, and whether it has undone it. */
@@ -466,7 +438,6 @@ class HexInputMethod : InputMethodService() {
             // Deleting in the query works as it does in a field.
             "backspace" -> deleteCharacter(queryText)
             "delete" -> slide(queryText, text, null, null)
-            "delete_all" -> deleteEverything(queryText, text == "1")
             "enter", "enter_action" -> {
                 closeSearch()
                 return
@@ -528,7 +499,6 @@ class HexInputMethod : InputMethodService() {
         swiped = null
         when (kind) {
             "delete" -> slide(connection, text, undo, justSwiped)
-            "delete_all" -> deleteEverything(connection, text == "1")
             "swipe" -> {
                 val view = keyboard ?: return
                 if (!suggesting) return
@@ -1187,9 +1157,6 @@ class HexInputMethod : InputMethodService() {
         /** The last word before the cursor with the spaces after it. */
         val WORD_AT_END = Regex("\\S*\\s*$")
 
-        /** The most reads of the field's text deleting everything makes, and how much of it the strip shows. */
-        private const val EVERYTHING_READS = 1000
-        private const val EVERYTHING_SHOWN = 200
 
         /** Text size of an autofill suggestion's subtitle, such as a login's account, in sp. */
         const val INLINE_SUBTITLE_SP = 14f

@@ -233,8 +233,7 @@ fn action(env: &mut JNIEnv, action: Action) -> jobjectArray {
         Action::Redraw => ("redraw", String::new()),
         Action::Nothing => ("nothing", String::new()),
         Action::Swipe => ("swipe", String::new()),
-        Action::DeleteAll { started } => ("delete_all", (started as u8).to_string()),
-        Action::Delete { characters, words, started } => ("delete", format!("{characters} {words} {}", started as u8)),
+        Action::Delete { letters, words, endless, started } => ("delete", format!("{letters} {words} {endless} {}", started as u8)),
     };
     let array = env
         .new_object_array(2, "java/lang/String", jni::objects::JObject::null())
@@ -333,8 +332,8 @@ pub extern "system" fn Java_io_github_tieo_hexkeys_Core_movingCursor(_env: JNIEn
 }
 
 /// While a delete slide is under way, where it started and where the
-/// finger is, as two x positions, then the zone it is in: 0 precise, 1
-/// growing, 2 everything; empty otherwise.
+/// finger is, as two x positions, then the zone it is in: 0 letters, 1
+/// words, 2 endless; empty otherwise.
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_tieo_hexkeys_Core_deleting(env: JNIEnv, _class: JClass, handle: jlong) -> jfloatArray {
     let flat: Vec<f32> =
@@ -623,30 +622,30 @@ pub extern "system" fn Java_io_github_tieo_hexkeys_Core_decodeSwipe(
 }
 
 /// Sets up the gestures: delete slides from the left edge instead of the
-/// right, and where their precise and everything zones start, in percent of
-/// the width from that edge.
+/// right, and where their words and endless zones start, in percent of the
+/// width from that edge.
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_tieo_hexkeys_Core_configure(
     _env: JNIEnv,
     _class: JClass,
     handle: jlong,
     delete_from_left: jboolean,
-    delete_precise_percent: jint,
-    delete_all_percent: jint,
+    delete_words_percent: jint,
+    delete_endless_percent: jint,
 ) {
     let gestures = &mut keyboard(handle).gestures;
     gestures.delete_from_left = delete_from_left != 0;
-    gestures.delete_precise_percent = u32::try_from(delete_precise_percent).unwrap_or(hexkeys::DELETE_PRECISE_PERCENT);
-    gestures.delete_all_percent = u32::try_from(delete_all_percent).unwrap_or(hexkeys::DELETE_ALL_PERCENT);
+    gestures.delete_words_percent = u32::try_from(delete_words_percent).unwrap_or(hexkeys::DELETE_WORDS_PERCENT);
+    gestures.delete_endless_percent = u32::try_from(delete_endless_percent).unwrap_or(hexkeys::DELETE_ENDLESS_PERCENT);
 }
 
-/// Where a delete slide's precise zone ends and its everything zone starts,
-/// in pixels from the edge it comes in from; the second is the width when
-/// there is no everything zone.
+/// Where a delete slide's words zone and its endless zone start, in pixels
+/// from the edge it comes in from; the second is the width when there is no
+/// endless zone.
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_tieo_hexkeys_Core_deleteBorders(env: JNIEnv, _class: JClass, handle: jlong) -> jfloatArray {
-    let (precise, all) = keyboard(handle).delete_borders();
-    floats(&env, &[precise, all])
+    let (words, endless) = keyboard(handle).delete_borders();
+    floats(&env, &[words, endless])
 }
 
 /// The accented letters of the lexicon's languages by plain letter, as

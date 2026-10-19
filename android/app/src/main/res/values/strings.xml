@@ -124,7 +124,7 @@
     <string name="help_space_body">• The space key shows the languages in use. The one being written is brightest, and it is faint while it is only a guess from what you wrote.\n• Flick sideways on space to pick a language by hand: each of your languages in turn, then back to guessing. It holds for the field you are in.\n• Hold space and move your finger to steer the cursor through the text, up and down too.\n• In the layout with space in the middle, the key left of space is the comma, or what you choose under Look: backspace, emoji, clipboard, dictation, hide the keyboard or a second space.</string>
 
     <string name="help_delete_title">Deleting</string>
-    <string name="help_delete_body">• Slide in from the edge of the number row to delete. The slide crosses three zones, drawn under Gestures and shown on the keys while you slide: in the first each step takes one character; in the second whole words go, more per step the farther you slide, and resting there keeps taking words, ever faster; the third takes everything before the cursor. Slide back to put the text back.\n• Drag the zones\' borders under Gestures; dragging the last one to the end leaves out deleting everything.\n• A short quick flick across the number row deletes one character.\n• Slide along the middle of the number row, or hold it, to move the cursor.\n• Choose the edge you slide in from under Gestures.</string>
+    <string name="help_delete_body">• Slide in from the edge of the number row to delete. The slide crosses three zones, drawn under Gestures and shown on the keys while you slide: the first takes the last few words letter by letter, the second whole words until the last several are gone, the third keeps taking words, ever faster, while you stay in it. Slide back to put the text back.\n• Under Gestures, drag the zones\' borders and set how many words the first two take; dragging the last border to the end leaves out the third zone.\n• A short quick flick across the number row deletes one character.\n• Slide along the middle of the number row, or hold it, to move the cursor.\n• Choose the edge you slide in from under Gestures.</string>
 
     <string name="help_look_title">Layout, size and themes</string>
     <string name="help_look_body">• Two layouts: space at the bottom, or in the middle, which is the default.\n• Shift and backspace keys can be added at the ends of the third row.\n• Under Size, scale the whole keyboard, the letter keys and the number row on their own, or leave the number row out. Without it the digits are on the symbols and the shift and backspace keys are there.\n• Pick a theme under Look; the starter themes colour each letter by its QWERTZ row so moved letters stay easy to find.\n• In landscape the strip and the number row are left out to give the app room; the shift and backspace keys take over, and the key left of space can open the clipboard or dictation.\n• App language switches the app, including this help, between English and German.</string>
@@ -141,10 +141,6 @@
     <string name="themes_dark">Dark</string>
     <string name="themes_light">Light</string>
     <string name="delete_zones">Zones</string>
-    <string name="delete_zone_precise">abc</string>
-    <string name="delete_zone_growing">words</string>
-    <string name="delete_zone_all">all</string>
-    <string name="delete_zones_info">Slide in from the edge along the number row. In the first zone each step takes one character. In the second, whole words go, more per step the farther you slide, and resting there keeps taking words. The last zone takes everything before the cursor. Sliding back puts the text back. Drag the last border to the end to leave deleting everything out.</string>
     <string name="autocorrect_info">Off only suggests. Obvious fixes what differs only in capitals, apostrophes and accents, such as im to I\'m or fur to für. All also fixes misspellings. Backspace right after a correction puts back what you typed.</string>
     <string name="learn_info">Words you type that no dictionary knows are remembered and suggested from then on. Forget deletes all of them.</string>
     <string name="delete_from_info">The edge of the number row your thumb slides in from to delete. The left edge suits typing with the left hand.</string>
@@ -155,4 +151,14 @@
     <string name="size_all_info">Scales the whole keyboard\'s height.</string>
     <string name="size_keys_info">Scales the letter keys\' height; the number row keeps its own.</string>
     <string name="size_numbers_info">The number row\'s height, where slides delete and move the cursor.</string>
+    <string name="delete_zone_letters">abc</string>
+    <string name="delete_zone_words">words</string>
+    <string name="delete_zone_endless">∞</string>
+    <string name="delete_zones_info">Slide in from the edge along the number row. The first zone takes the last few words letter by letter, the second takes whole words until the last several are gone, and the third keeps taking words, ever faster, for as long as you stay in it. Sliding back puts the text back. Drag the borders to resize the zones; dragging the last one to the end leaves out the third zone.</string>
+    <string name="delete_letter_words">Letter by letter through</string>
+    <string name="delete_word_words">Word by word up to</string>
+    <plurals name="last_words">
+        <item quantity="one">the last word</item>
+        <item quantity="other">the last %d words</item>
+    </plurals>
 </resources>

@@ -107,6 +107,14 @@ class SettingsActivity : LocalizedActivity() {
             },
             ui.titled(getString(R.string.delete_zones), getString(R.string.delete_zones_info)),
             zones,
+            ui.slider(
+                getString(R.string.delete_letter_words), KeyboardView.DELETE_LETTER_WORDS, KeyboardView.DELETE_LETTER_WORDS_RANGE,
+                KeyboardView.DELETE_LETTER_WORDS_DEFAULT, step = 1, describe = { resources.getQuantityString(R.plurals.last_words, it, it) },
+            ),
+            ui.slider(
+                getString(R.string.delete_word_words), KeyboardView.DELETE_WORD_WORDS, KeyboardView.DELETE_WORD_WORDS_RANGE,
+                KeyboardView.DELETE_WORD_WORDS_DEFAULT, step = 1, describe = { resources.getQuantityString(R.plurals.last_words, it, it) },
+            ),
         ))
 
         column.addView(ui.heading(getString(R.string.voice), getString(R.string.voice_info)))
@@ -698,15 +706,15 @@ class Ui(private val activity: Activity) {
  */
 /**
  * The number row as a delete slide crosses it, from the edge it comes in
- * from: the precise, growing and everything zones in the colours the
- * keyboard shows them in while sliding, with their two borders to drag.
- * Dragging the second border to the far end leaves out the everything zone.
+ * from: the letters, words and endless zones in the colours the keyboard
+ * shows them in while sliding, with their two borders to drag. Dragging the
+ * second border to the far end leaves out the endless zone.
  */
 private class DeleteZones(context: Context, private val ui: Ui) : View(context) {
     private val preferences = ui.preferences
-    private var precise = preferences.getInt(KeyboardView.DELETE_PRECISE, KeyboardView.DELETE_PRECISE_DEFAULT)
-    private var all = preferences.getInt(KeyboardView.DELETE_ALL, KeyboardView.DELETE_ALL_DEFAULT)
-    private val names = listOf(R.string.delete_zone_precise, R.string.delete_zone_growing, R.string.delete_zone_all).map { context.getString(it) }
+    private var words = preferences.getInt(KeyboardView.DELETE_WORDS, KeyboardView.DELETE_WORDS_DEFAULT)
+    private var endless = preferences.getInt(KeyboardView.DELETE_ENDLESS, KeyboardView.DELETE_ENDLESS_DEFAULT)
+    private val names = listOf(R.string.delete_zone_letters, R.string.delete_zone_words, R.string.delete_zone_endless).map { context.getString(it) }
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ui.text
@@ -716,7 +724,7 @@ private class DeleteZones(context: Context, private val ui: Ui) : View(context) 
     private val handleWidth = ui.dp(6).toFloat()
     private val corner = ui.dp(12).toFloat()
 
-    /** The border being dragged: 0 the growing zone's start, 1 the everything zone's, -1 none. */
+    /** The border being dragged: 0 the words zone's start, 1 the endless zone's, -1 none. */
     private var dragging = -1
 
     var fromLeft = preferences.getBoolean(KeyboardView.DELETE_FROM_LEFT, false)
@@ -727,8 +735,8 @@ private class DeleteZones(context: Context, private val ui: Ui) : View(context) 
 
     init {
         // Kept in step with the core's borders, which it holds the same way.
-        precise = precise.coerceIn(KeyboardView.DELETE_PRECISE_LEAST, KeyboardView.DELETE_ALL_OFF - KeyboardView.DELETE_GROWING_LEAST)
-        all = all.coerceIn(precise + KeyboardView.DELETE_GROWING_LEAST, KeyboardView.DELETE_ALL_OFF)
+        words = words.coerceIn(KeyboardView.DELETE_WORDS_LEAST, KeyboardView.DELETE_ENDLESS_OFF - KeyboardView.DELETE_WORDS_ROOM)
+        endless = endless.coerceIn(words + KeyboardView.DELETE_WORDS_ROOM, KeyboardView.DELETE_ENDLESS_OFF)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -744,7 +752,7 @@ private class DeleteZones(context: Context, private val ui: Ui) : View(context) 
     override fun onDraw(canvas: Canvas) {
         val top = ui.dp(6).toFloat()
         val bottom = height - top
-        val starts = listOf(0, precise, all, KeyboardView.DELETE_ALL_OFF)
+        val starts = listOf(0, words, endless, KeyboardView.DELETE_ENDLESS_OFF)
         for (zone in 0..2) {
             if (starts[zone] >= starts[zone + 1]) continue
             val (left, right) = listOf(x(starts[zone]), x(starts[zone + 1])).sorted()
@@ -764,7 +772,7 @@ private class DeleteZones(context: Context, private val ui: Ui) : View(context) 
             }
         }
         fill.color = ui.accent
-        for (border in listOf(precise, all)) {
+        for (border in listOf(words, endless)) {
             val at = x(border)
             canvas.drawRoundRect(at - handleWidth / 2, 0f, at + handleWidth / 2, height.toFloat(), handleWidth / 2, handleWidth / 2, fill)
         }
@@ -775,7 +783,7 @@ private class DeleteZones(context: Context, private val ui: Ui) : View(context) 
         val percent = ((if (fromLeft) event.x - inset else width - inset - event.x) / span * 100).toInt()
         when (event.actionMasked) {
             android.view.MotionEvent.ACTION_DOWN -> {
-                val near = listOf(precise, all).map { kotlin.math.abs(x(it) - event.x) }
+                val near = listOf(words, endless).map { kotlin.math.abs(x(it) - event.x) }
                 dragging = when {
                     near.min() > ui.dp(32) -> -1
                     // Borders on top of each other: the one the finger moves towards.
@@ -788,15 +796,15 @@ private class DeleteZones(context: Context, private val ui: Ui) : View(context) 
             android.view.MotionEvent.ACTION_MOVE -> {
                 val snapped = (percent + 2) / 5 * 5
                 if (dragging == 0) {
-                    precise = snapped.coerceIn(KeyboardView.DELETE_PRECISE_LEAST, minOf(all, KeyboardView.DELETE_ALL_OFF) - KeyboardView.DELETE_GROWING_LEAST)
+                    words = snapped.coerceIn(KeyboardView.DELETE_WORDS_LEAST, minOf(endless, KeyboardView.DELETE_ENDLESS_OFF) - KeyboardView.DELETE_WORDS_ROOM)
                 } else if (dragging == 1) {
-                    all = snapped.coerceIn(precise + KeyboardView.DELETE_GROWING_LEAST, KeyboardView.DELETE_ALL_OFF)
+                    endless = snapped.coerceIn(words + KeyboardView.DELETE_WORDS_ROOM, KeyboardView.DELETE_ENDLESS_OFF)
                 }
                 invalidate()
             }
             android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
                 dragging = -1
-                preferences.edit().putInt(KeyboardView.DELETE_PRECISE, precise).putInt(KeyboardView.DELETE_ALL, all).apply()
+                preferences.edit().putInt(KeyboardView.DELETE_WORDS, words).putInt(KeyboardView.DELETE_ENDLESS, endless).apply()
             }
         }
         return true

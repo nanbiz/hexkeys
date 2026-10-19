@@ -65,7 +65,7 @@ object Core {
     /** Shift: 0 off, 1 for the next letter, 2 locked. */
     external fun shiftState(handle: Long): Int
 
-    /** While a delete slide is under way, the x it started at, the finger's x, and its zone: 0 precise, 1 growing, 2 everything; empty otherwise. */
+    /** While a delete slide is under way, the x it started at, the finger's x, and its zone: 0 letters, 1 words, 2 endless; empty otherwise. */
     external fun deleting(handle: Long): FloatArray
 
     /** The key the finger went down on, or -1. */
@@ -76,18 +76,19 @@ object Core {
     external fun touchMove(handle: Long, x: Float, y: Float, time: Long): Array<String>
 
     /**
-     * Delete slides from the left edge instead of the right, and where their growing and
-     * everything zones start, in percent of the width from that edge.
+     * Delete slides from the left edge instead of the right, and where their words and
+     * endless zones start, in percent of the width from that edge.
      */
-    external fun configure(handle: Long, deleteFromLeft: Boolean, deletePrecisePercent: Int, deleteAllPercent: Int)
+    external fun configure(handle: Long, deleteFromLeft: Boolean, deleteWordsPercent: Int, deleteEndlessPercent: Int)
 
-    /** Where the growing and the everything zones start, in pixels from the delete edge; the second is the width when there is none. */
+    /** Where the words and the endless zones start, in pixels from the delete edge; the second is the width when there is none. */
     external fun deleteBorders(handle: Long): FloatArray
 
     /**
      * What lifting means, as kind and text. The kinds are commit, backspace, enter,
      * enter_action, emoji, clipboard, voice, hide, language (text 1 or -1), cursor (text "dx dy"),
-     * redraw, nothing, swipe, delete_all, and delete (text "characters words started", the last 0 or 1).
+     * redraw, nothing, swipe, and delete (text "letters words endless started": thousandths through the
+     * letters and the words zone, words the endless zone took, and 0 or 1).
      */
     external fun touchUp(handle: Long, x: Float, y: Float, time: Long): Array<String>
     external fun touchCancel(handle: Long)

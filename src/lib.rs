@@ -854,16 +854,13 @@ pub enum Action {
     /// A path was drawn across the letters; [`Keyboard::swiped`] has it for
     /// the decoder.
     Swipe,
-    /// A delete swipe reached far enough in: everything before the cursor
-    /// goes. Moving back out puts it back with a [`Action::Delete`].
-    /// `started` marks the first action of a delete swipe, as it does there:
-    /// a swipe that reaches this far in its first move starts with this.
-    DeleteAll { started: bool },
-    /// A delete slide now has `characters` and then `words` deleted before
-    /// the cursor, counted from where it started: the characters first, the
-    /// words before them. More delete, fewer put back what was deleted last.
-    /// `started` marks the first action of a delete slide.
-    Delete { characters: u32, words: u32, started: bool },
+    /// A delete slide now reaches `letters` thousandths through its letters
+    /// zone and `words` thousandths through its words zone, and has taken
+    /// `endless` words while in its endless zone, counted from where it
+    /// started; the keyboard's owner turns these into text, the letters of
+    /// the last few words, then whole words. Less puts back what was deleted
+    /// last. `started` marks the first action of a delete slide.
+    Delete { letters: u32, words: u32, endless: u32, started: bool },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -912,9 +909,9 @@ const STILL: f32 = 0.25;
 /// Pause between characters while backspace is held, in ms.
 const BACKSPACE_REPEAT_MS: u64 = 60;
 
-/// How far a delete slide moves in the precise zone for each character, in
-/// key widths: the same all the way, so the finger chooses exactly how many.
-const PRECISE_STEP: f32 = 0.45;
+/// How far a quick stroke in from the edge goes to take a character, in key
+/// widths, when it lifts before the slide has counted any.
+const DELETE_FLICK: f32 = 0.45;
 
 /// How much farther back a delete slide has to move before it puts
 /// anything back, in key widths, so a finger easing off does not undo more
@@ -926,32 +923,27 @@ const RESTORE_SLACK: f32 = 0.25;
 /// letter where a slow slide of the same length takes several.
 const DELETE_RAMP_MS: f32 = 350.0;
 
-/// The words the growing zone has taken by its far end. Across the zone
-/// the count grows as a power, `(1 + GROWING_WORDS)^t - 1` at the fraction
-/// `t` of the way, so its start takes a word at a time and its end many.
-const GROWING_WORDS: f32 = 40.0;
+/// How long a delete slide is in the endless zone before it takes its
+/// first word there, in ms; after that the words come ever faster.
+const ENDLESS_START_MS: u64 = 200;
 
-/// How long a delete slide rests in the growing zone before resting takes
-/// a word more, in ms; after that the words come ever faster.
-const HELD_WORD_START_MS: u64 = 400;
-
-/// Where the precise zone ends and the growing zone starts, as a percent of
+/// Where the letters zone ends and the words zone starts, as a percent of
 /// the keyboard's width from the edge delete slides come in from, when the
 /// settings say nothing; and the least it may be: slides start in the outer
-/// third, and the precise zone has to reach past it.
-pub const DELETE_PRECISE_PERCENT: u32 = 45;
-pub const DELETE_PRECISE_LEAST: u32 = 40;
+/// third, and the letters zone has to reach past it.
+pub const DELETE_WORDS_PERCENT: u32 = 45;
+pub const DELETE_WORDS_LEAST: u32 = 40;
 
-/// Where the growing zone ends and deleting everything starts, as a percent
-/// of the width from the edge, when the settings say nothing.
-pub const DELETE_ALL_PERCENT: u32 = 90;
+/// Where the words zone ends and the endless zone starts, as a percent of
+/// the width from the edge, when the settings say nothing.
+pub const DELETE_ENDLESS_PERCENT: u32 = 90;
 
-/// The least room the growing zone keeps, in percent of the width.
-pub const DELETE_GROWING_LEAST: u32 = 10;
+/// The least room the words zone keeps, in percent of the width.
+pub const DELETE_WORDS_ROOM: u32 = 10;
 
-/// An everything zone starting at the far edge is none: the growing zone
-/// runs to the edge and nothing is deleted all at once.
-pub const DELETE_ALL_OFF: u32 = 100;
+/// An endless zone starting at the far edge is none: the words zone runs to
+/// the edge.
+pub const DELETE_ENDLESS_OFF: u32 = 100;
 
 /// Strokes quicker than this, in ms, that run straight are gestures even
 /// when longer than a key: a flick of the thumb. Swipe typing is slower;
@@ -965,7 +957,7 @@ const FAST_BEND: f32 = 0.35;
 /// The longest a quick stroke can be, in key widths.
 const FAST_LONGEST: f32 = 3.5;
 
-/// Pause between whole words deleted while a delete swipe rests on the far side, in ms.
+/// Pause between whole words a delete slide takes in its endless zone, in ms.
 const WORD_REPEAT_MS: u64 = 300;
 
 /// The shortest pause between whole words, which the pause shrinks to.
@@ -976,26 +968,26 @@ const WORD_REPEAT_FASTEST: u64 = 60;
 pub struct Gestures {
     /// Delete slides come in from the left edge instead of the right.
     pub delete_from_left: bool,
-    /// Where a delete slide's precise zone ends and its growing zone starts,
+    /// Where a delete slide's letters zone ends and its words zone starts,
     /// in percent of the width from the edge it comes in from.
-    pub delete_precise_percent: u32,
-    /// Where the growing zone ends and everything before the cursor goes,
-    /// in percent of the width from the edge; [`DELETE_ALL_OFF`] for never.
-    pub delete_all_percent: u32,
+    pub delete_words_percent: u32,
+    /// Where the words zone ends and the endless zone starts, in percent of
+    /// the width from the edge; [`DELETE_ENDLESS_OFF`] for none.
+    pub delete_endless_percent: u32,
 }
 
 impl Default for Gestures {
     fn default() -> Self {
-        Self { delete_from_left: false, delete_precise_percent: DELETE_PRECISE_PERCENT, delete_all_percent: DELETE_ALL_PERCENT }
+        Self { delete_from_left: false, delete_words_percent: DELETE_WORDS_PERCENT, delete_endless_percent: DELETE_ENDLESS_PERCENT }
     }
 }
 
 impl Gestures {
-    /// The two borders, kept to where they may be: the precise zone past
-    /// the start, the growing zone with room of its own.
+    /// The two borders, kept to where they may be: the letters zone past
+    /// the start, the words zone with room of its own.
     pub fn delete_borders(&self) -> (u32, u32) {
-        let precise = self.delete_precise_percent.clamp(DELETE_PRECISE_LEAST, DELETE_ALL_OFF - DELETE_GROWING_LEAST);
-        (precise, self.delete_all_percent.clamp(precise + DELETE_GROWING_LEAST, DELETE_ALL_OFF))
+        let words = self.delete_words_percent.clamp(DELETE_WORDS_LEAST, DELETE_ENDLESS_OFF - DELETE_WORDS_ROOM);
+        (words, self.delete_endless_percent.clamp(words + DELETE_WORDS_ROOM, DELETE_ENDLESS_OFF))
     }
 }
 
@@ -1022,20 +1014,19 @@ enum Gesture {
 /// A delete slide under way.
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Deleting {
-    /// Characters deleted by how far the finger moved through the precise zone.
-    characters: u32,
-    /// Whole words deleted by how far it moved through the growing zone.
+    /// How far the finger has come through the letters zone, in thousandths.
+    letters: u32,
+    /// How far it has come through the words zone, in thousandths.
     words: u32,
-    /// Whole words deleted while resting in the growing zone.
-    held: u32,
-    /// Reached far enough in for everything before the cursor to be gone.
-    all: bool,
+    /// Words taken while in the endless zone.
+    endless: u32,
+    /// When the endless zone takes its next word; none outside it.
+    endless_at: Option<u64>,
 }
 
 impl Deleting {
-    /// The characters and the words deleted, the characters nearer the cursor's start.
-    fn amount(&self) -> (u32, u32) {
-        (self.characters, self.words + self.held)
+    fn action(&self, started: bool) -> Action {
+        Action::Delete { letters: self.letters, words: self.words, endless: self.endless, started }
     }
 }
 
@@ -1052,7 +1043,7 @@ struct Touch {
     /// Where and since when the finger has held still.
     anchor: Point,
     anchor_time: u64,
-    /// When the next word is due while a delete swipe holds still.
+    /// When the next step is due while backspace is held or the cursor runs on by itself.
     repeat_at: Option<u64>,
     /// When the finger went down and when it last moved.
     start_time: u64,
@@ -1256,20 +1247,20 @@ impl Keyboard {
         if self.gestures.delete_from_left { x } else { self.layout.width - x }
     }
 
-    /// Where the precise zone ends and the everything zone starts, in pixels
-    /// from the edge delete slides come in from; the second is the width
-    /// when there is no everything zone.
+    /// Where the words zone and the endless zone start, in pixels from the
+    /// edge delete slides come in from; the second is the width when there
+    /// is no endless zone.
     pub fn delete_borders(&self) -> (f32, f32) {
-        let (precise, all) = self.gestures.delete_borders();
-        (self.layout.width * precise as f32 / 100.0, self.layout.width * all as f32 / 100.0)
+        let (words, endless) = self.gestures.delete_borders();
+        (self.layout.width * words as f32 / 100.0, self.layout.width * endless as f32 / 100.0)
     }
 
-    /// The zone `from_edge` pixels from the edge is in: 0 precise, 1 growing, 2 everything.
+    /// The zone `from_edge` pixels from the edge is in: 0 letters, 1 words, 2 endless.
     fn delete_zone(&self, from_edge: f32) -> u8 {
-        let (precise, all) = self.delete_borders();
-        if from_edge >= all && all < self.layout.width {
+        let (words, endless) = self.delete_borders();
+        if from_edge >= endless && endless < self.layout.width {
             2
-        } else if from_edge > precise {
+        } else if from_edge > words {
             1
         } else {
             0
@@ -1285,16 +1276,17 @@ impl Keyboard {
         start + (self.edge_distance(touch.at.x) - start) * ramp
     }
 
-    /// The characters and words a delete slide that started `start` pixels
-    /// from the edge has taken at `reach` pixels from it: a character per
-    /// [`PRECISE_STEP`] through the precise zone, then words growing as a
-    /// power through the growing zone.
-    fn delete_amount(&self, start: f32, reach: f32) -> (u32, u32) {
-        let (precise, all) = self.delete_borders();
-        let characters = ((reach.min(precise) - start).max(0.0) / (PRECISE_STEP * self.layout.cell_width)) as u32;
-        let through = ((reach - precise) / (all - precise)).clamp(0.0, 1.0);
-        let words = if reach > precise { ((1.0 + GROWING_WORDS).powf(through) - 1.0) as u32 } else { 0 };
-        (characters, words)
+    /// How far a delete slide that started `start` pixels from the edge has
+    /// come through its letters zone and its words zone at `reach` pixels
+    /// from it, each in thousandths.
+    fn delete_progress(&self, start: f32, reach: f32) -> (u32, u32) {
+        let (words, endless) = self.delete_borders();
+        // The letters count from a little way in, so sliding back to where it
+        // started, within the slack, puts every letter back.
+        let first = start + RESTORE_SLACK * self.layout.cell_width;
+        let letters = ((reach - first) / (words - first)).clamp(0.0, 1.0);
+        let through = ((reach - words) / (endless - words)).clamp(0.0, 1.0);
+        ((letters * 1000.0) as u32, (through * 1000.0) as u32)
     }
 
     /// Shift as it stands: 0 off, 1 for the next letter, 2 locked.
@@ -1320,12 +1312,12 @@ impl Keyboard {
 
     /// While a delete slide is under way, where it started and where the
     /// finger is now, along the keyboard's width, and the zone it is in: 0
-    /// precise, 1 growing, 2 everything.
+    /// letters, 1 words, 2 endless.
     pub fn deleting(&self) -> Option<(f32, f32, u8)> {
-        self.touch.as_ref().filter(|touch| touch.deleting.is_some()).map(|touch| {
-            let zone = if touch.deleting.is_some_and(|deleting| deleting.all) { 2 } else { self.delete_zone(self.edge_distance(touch.at.x)).min(1) };
-            (touch.start.x, touch.at.x, zone)
-        })
+        self.touch
+            .as_ref()
+            .filter(|touch| touch.deleting.is_some())
+            .map(|touch| (touch.start.x, touch.at.x, self.delete_zone(self.edge_distance(touch.at.x))))
     }
 
     /// The key the finger went down on, which every gesture belongs to;
@@ -1415,53 +1407,38 @@ impl Keyboard {
             && inwards >= FLICK * w
             && (at.x - touch.start.x).abs() >= (at.y - touch.start.y).abs()
         {
-            touch.deleting = Some(Deleting { characters: 0, words: 0, held: 0, all: false });
+            touch.deleting = Some(Deleting { letters: 0, words: 0, endless: 0, endless_at: None });
             started = true;
         }
         let start = self.edge_distance(touch.start.x);
         let reach = self.delete_reach(&touch, time);
         let back_reach = reach + RESTORE_SLACK * w;
-        let forwards = self.delete_amount(start, reach);
-        let back = self.delete_amount(start, back_reach);
-        // The everything zone has the slack too, so a finger easing off does not
-        // put everything back.
-        let beyond = match (self.delete_zone(reach), self.delete_zone(back_reach)) {
-            (2, _) => Some(true),
-            (_, zone) if zone < 2 => Some(false),
-            _ => None,
-        };
-        let back_in_precise = self.delete_zone(back_reach) == 0;
+        let forwards = self.delete_progress(start, reach);
+        let back = self.delete_progress(start, back_reach);
+        let in_endless = self.delete_zone(reach) == 2;
+        // The endless zone has the slack too, so a finger easing off keeps its words.
+        let left_endless = self.delete_zone(back_reach) < 2;
         if let Some(deleting) = &mut touch.deleting {
-            let before = deleting.amount();
-            if forwards.0 > deleting.characters {
-                deleting.characters = forwards.0;
-            } else if back.0 < deleting.characters {
-                deleting.characters = back.0;
+            let before = *deleting;
+            if forwards.0 > deleting.letters {
+                deleting.letters = forwards.0;
+            } else if back.0 < deleting.letters {
+                deleting.letters = back.0;
             }
             if forwards.1 > deleting.words {
                 deleting.words = forwards.1;
             } else if back.1 < deleting.words {
-                // The words taken while resting go back in proportion.
-                deleting.held = deleting.held * back.1 / deleting.words;
                 deleting.words = back.1;
             }
-            if back_in_precise {
-                deleting.held = 0;
+            if in_endless {
+                deleting.endless_at.get_or_insert(time + ENDLESS_START_MS);
+            } else if left_endless {
+                deleting.endless = 0;
+                deleting.endless_at = None;
             }
-            // While the everything zone is crossed, nothing else is asked.
-            let crossed = match (deleting.all, beyond) {
-                (false, Some(true)) => Some(true),
-                (true, Some(false)) => Some(false),
-                _ => None,
-            };
-            if let Some(all) = crossed {
-                deleting.all = all;
-            }
-            if deleting.all && crossed.is_some() {
-                action = Action::DeleteAll { started };
-            } else if !deleting.all && (started || crossed.is_some() || deleting.amount() != before) {
-                let (characters, words) = deleting.amount();
-                action = Action::Delete { characters, words, started };
+            let changed = (deleting.letters, deleting.words, deleting.endless) != (before.letters, before.words, before.endless);
+            if started || changed {
+                action = deleting.action(started);
             }
         }
         self.touch = Some(touch);
@@ -1483,17 +1460,13 @@ impl Keyboard {
         match gesture {
             // A flick in from the edge, too quick to have counted a letter yet, takes one.
             Gesture::Delete
-                if touch.deleting.is_some_and(|deleting| deleting.amount() == (0, 0))
-                    && self.inwards(&touch, touch.at) >= PRECISE_STEP * self.layout.cell_width =>
+                if touch.deleting.is_some_and(|deleting| (deleting.letters, deleting.words) == (0, 0))
+                    && self.inwards(&touch, touch.at) >= DELETE_FLICK * self.layout.cell_width =>
             {
-                Action::Delete { characters: 1, words: 0, started: false }
+                Action::Backspace
             }
             Gesture::Delete => moved,
-            Gesture::QuickDelete => {
-                let reach = self.delete_reach(&touch, touch.last_time);
-                let characters = self.delete_amount(self.edge_distance(touch.start.x), reach).0.max(1);
-                Action::Delete { characters, words: 0, started: true }
-            }
+            Gesture::QuickDelete => Action::Backspace,
             Gesture::Tap => self.press(touch.key),
             // A flick sideways on space steps through the languages.
             Gesture::Sideways => {
@@ -1535,12 +1508,8 @@ impl Keyboard {
             return self.cursor_edge(touch).map(|_| touch.repeat_at.unwrap_or(touch.anchor_time + CURSOR_EDGE_START_MS));
         }
         match self.gesture(touch) {
-            Gesture::Delete if touch.deleting.is_some_and(|deleting| deleting.all) => None,
-            // Resting in the growing zone takes words, ever faster.
-            Gesture::Delete if self.delete_zone(self.edge_distance(touch.at.x)) == 1 => {
-                Some(touch.repeat_at.unwrap_or(touch.anchor_time + HELD_WORD_START_MS))
-            }
-            Gesture::Delete => None,
+            // The endless zone takes words, ever faster.
+            Gesture::Delete => touch.deleting.and_then(|deleting| deleting.endless_at),
             Gesture::Tap if self.layout.keys[touch.key].label == "⌫" => {
                 Some(touch.repeat_at.unwrap_or(touch.anchor_time + self.long_press_ms))
             }
@@ -1578,12 +1547,11 @@ impl Keyboard {
             Gesture::Delete => {
                 let touch = self.touch.as_mut().expect("touch");
                 let deleting = touch.deleting.as_mut().expect("deleting");
-                deleting.held += 1;
-                // Faster the longer it rests there, so a whole text can go.
-                let pause = (WORD_REPEAT_MS as f32 * 0.85f32.powi(deleting.held as i32)).max(WORD_REPEAT_FASTEST as f32);
-                touch.repeat_at = Some(time + pause as u64);
-                let (characters, words) = deleting.amount();
-                Action::Delete { characters, words, started: false }
+                deleting.endless += 1;
+                // Faster the longer it is there, so a whole text can go.
+                let pause = (WORD_REPEAT_MS as f32 * 0.85f32.powi(deleting.endless as i32)).max(WORD_REPEAT_FASTEST as f32);
+                deleting.endless_at = Some(time + pause as u64);
+                deleting.action(false)
             }
             Gesture::Tap if self.layout.keys[touch.key].label == "⏎" => {
                 self.touch.as_mut().expect("touch").acted = true;
@@ -2327,25 +2295,34 @@ mod tests {
         xs.iter().map(|&(x, time)| keyboard.touch_move(at(x), time)).collect()
     }
 
+    /// The letters, words and endless words of a delete action.
+    fn amounts(action: &Action) -> (u32, u32, u32) {
+        match action {
+            Action::Delete { letters, words, endless, .. } => (*letters, *words, *endless),
+            other => panic!("no delete: {other:?}"),
+        }
+    }
+
     #[test]
-    fn the_precise_zone_takes_a_character_per_step_and_sliding_back_puts_back() {
+    fn the_letters_zone_goes_by_its_share_and_sliding_back_puts_back() {
         let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
         let w = keyboard.layout.cell_width;
         let y = keyboard.layout.numbers_bottom / 2.0;
         let at = |x: f32| Point { x, y };
         keyboard.touch_down(at(1007.0), 0);
         assert_eq!(keyboard.touch_move(at(1007.0 - 0.2 * w), 100), Action::Nothing, "not yet a slide");
-        assert_eq!(keyboard.touch_move(at(1007.0 - 0.4 * w), 200), Action::Delete { characters: 0, words: 0, started: true });
-        assert_eq!(keyboard.touch_move(at(1007.0 - 0.5 * w), 400), Action::Delete { characters: 1, words: 0, started: false });
-        assert_eq!(keyboard.touch_move(at(1007.0 - 1.4 * w), 500), Action::Delete { characters: 3, words: 0, started: false });
-        assert_eq!(keyboard.touch_move(at(1007.0 - 2.0 * w), 600), Action::Delete { characters: 4, words: 0, started: false });
-        assert_eq!(keyboard.touch_move(at(1007.0 - 2.9 * w), 650), Action::Delete { characters: 6, words: 0, started: false }, "the same pace all the way");
+        assert!(matches!(keyboard.touch_move(at(1007.0 - 0.4 * w), 200), Action::Delete { letters: 0, words: 0, endless: 0, started: true }));
+        // Halfway between the start, a slack in, and the words zone at 454 from the edge.
+        let half = 1.0 + 0.25 * w + (453.6 - 1.0 - 0.25 * w) / 2.0;
+        let (letters, words, _) = amounts(&keyboard.touch_move(at(1008.0 - half), 400));
+        assert!((letters as i32 - 500).abs() <= 3 && words == 0, "{letters} {words}");
         assert_eq!(keyboard.deleting().map(|(_, _, zone)| zone), Some(0));
         assert_eq!(keyboard.deadline(), None, "resting here takes nothing more");
-        assert_eq!(keyboard.touch_move(at(1007.0 - 2.8 * w), 700), Action::Nothing, "easing back a little keeps them");
-        assert_eq!(keyboard.touch_move(at(1007.0 - 0.8 * w), 800), Action::Delete { characters: 2, words: 0, started: false });
-        assert_eq!(keyboard.pressed(), None);
-        assert_eq!(keyboard.touch_up(at(1007.0 - 0.8 * w), 900), Action::Nothing);
+        assert_eq!(keyboard.touch_move(at(1008.0 - half + 0.2 * w), 500), Action::Nothing, "easing back a little keeps them");
+        let (back, _, _) = amounts(&keyboard.touch_move(at(1008.0 - half + w), 600));
+        assert!(back < letters, "{back} against {letters}");
+        assert_eq!(amounts(&keyboard.touch_move(at(1007.0), 700)), (0, 0, 0), "back at the start everything is back");
+        assert_eq!(keyboard.touch_up(at(1007.0), 800), Action::Nothing);
         // On the letters the same slide stays on its key and types it, even from the edge.
         assert_eq!(gesture(&mut keyboard, "g", &[(-0.3, 0.0), (-0.6, 0.1)]), Action::Commit("g".into()));
         let p = keyboard.layout.find("p").cells[0];
@@ -2355,73 +2332,74 @@ mod tests {
     }
 
     #[test]
-    fn the_growing_zone_takes_more_words_per_step_the_farther_it_goes() {
+    fn the_words_zone_follows_the_letters_and_goes_by_its_share() {
         let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
-        let words_at = |keyboard: &mut Keyboard, from_edge: f32, time: u64| match keyboard.touch_move(Point { x: 1008.0 - from_edge, y: keyboard.layout.numbers_bottom / 2.0 }, time) {
-            Action::Delete { characters, words, .. } => (characters, words),
-            other => panic!("{other:?} at {from_edge}"),
-        };
         slide_to(&mut keyboard, &[(900.0, 100), (700.0, 400)]);
-        let counts: Vec<(u32, u32)> = [(500.0, 500), (600.0, 600), (750.0, 700), (900.0, 800)].iter().map(|&(x, t)| words_at(&mut keyboard, x, t)).collect();
-        assert!(counts.iter().all(|&(characters, _)| characters == 6), "the precise zone's characters stay: {counts:?}");
-        let words: Vec<u32> = counts.iter().map(|&(_, words)| words).collect();
-        assert!(words.windows(2).all(|pair| pair[1] > pair[0]), "{words:?}");
-        assert!(words[1] - words[0] < words[3] - words[2], "more per step farther in: {words:?}");
-        assert!(words[3] >= 30, "the far end takes a lot: {words:?}");
+        let y = keyboard.layout.numbers_bottom / 2.0;
+        // The words zone runs from 454 to 907 from the edge.
+        let (letters, words, endless) = amounts(&keyboard.touch_move(Point { x: 1008.0 - 680.0, y }, 500));
+        assert_eq!((letters, endless), (1000, 0));
+        assert!((words as i32 - 500).abs() <= 3, "{words}");
         assert_eq!(keyboard.deleting().map(|(_, _, zone)| zone), Some(1));
-        let (_, back) = words_at(&mut keyboard, 600.0, 900);
-        assert!(back <= words[1] + 1, "sliding back puts words back: {back} against {words:?}");
+        assert_eq!(keyboard.deadline(), None, "resting here takes nothing more");
+        let (_, back, _) = amounts(&keyboard.touch_move(Point { x: 1008.0 - 560.0, y }, 600));
+        assert!(back < words, "sliding back puts words back: {back} against {words}");
     }
 
     #[test]
-    fn the_everything_zone_takes_all_and_sliding_back_puts_it_back() {
+    fn the_endless_zone_takes_words_ever_faster_and_sliding_back_puts_them_back() {
         let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
-        // Everything starts at 907 from the right edge: x = 101.
-        let actions = slide_to(&mut keyboard, &[(900.0, 100), (600.0, 400), (300.0, 500), (150.0, 600), (50.0, 700), (30.0, 800)]);
-        assert!(matches!(actions[0], Action::Delete { started: true, .. }), "{:?}", actions[0]);
-        assert!(actions[1..4].iter().all(|action| matches!(action, Action::Delete { .. })), "{actions:?}");
-        assert_eq!(actions[4], Action::DeleteAll { started: false });
-        assert_eq!(actions[5], Action::Nothing, "going on asks for nothing more");
-        assert_eq!(keyboard.deleting().map(|(_, _, zone)| zone), Some(2));
-        assert_eq!(keyboard.deadline(), None, "nothing repeats once everything is gone");
-        let w = keyboard.layout.cell_width;
         let y = keyboard.layout.numbers_bottom / 2.0;
-        let at = |x: f32| Point { x, y };
-        assert_eq!(keyboard.touch_move(at(101.0 + 0.1 * w), 900), Action::Nothing, "a little slack");
-        assert!(matches!(keyboard.touch_move(at(300.0), 1000), Action::Delete { started: false, .. }), "back out puts it back");
-        assert_eq!(keyboard.deleting().map(|(_, _, zone)| zone), Some(1));
-        assert_eq!(keyboard.touch_move(at(50.0), 1100), Action::DeleteAll { started: false }, "and in again");
-        // A slide that gets there in its first move starts with it.
+        let actions = slide_to(&mut keyboard, &[(900.0, 100), (600.0, 400), (40.0, 500)]);
+        assert_eq!(amounts(&actions[2]), (1000, 1000, 0), "entering it takes nothing at once");
+        assert_eq!(keyboard.deleting().map(|(_, _, zone)| zone), Some(2));
+        assert_eq!(keyboard.deadline(), Some(500 + ENDLESS_START_MS));
+        assert_eq!(amounts(&keyboard.tick(500 + ENDLESS_START_MS)), (1000, 1000, 1));
+        let pauses: Vec<u64> = (0..6)
+            .map(|_| {
+                let due = keyboard.deadline().unwrap();
+                keyboard.tick(due);
+                keyboard.deadline().unwrap() - due
+            })
+            .collect();
+        assert!(pauses.windows(2).all(|pair| pair[1] <= pair[0]), "{pauses:?}");
+        assert_eq!(keyboard.touch_move(Point { x: 40.0 + 0.2 * keyboard.layout.cell_width, y }, 2000), Action::Nothing, "a little slack");
+        assert_eq!(amounts(&keyboard.touch_move(Point { x: 300.0, y }, 2100)).2, 0, "back out puts them back");
+        assert_eq!(keyboard.deadline(), None);
+        // With the endless zone left out the words zone runs to the edge.
         let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
-        let actions = slide_to(&mut keyboard, &[(50.0, 400), (30.0, 500)]);
-        assert_eq!(actions, vec![Action::DeleteAll { started: true }, Action::Nothing]);
+        keyboard.gestures.delete_endless_percent = DELETE_ENDLESS_OFF;
+        slide_to(&mut keyboard, &[(900.0, 100), (10.0, 400)]);
+        assert_eq!(keyboard.deleting().map(|(_, _, zone)| zone), Some(1));
+        assert_eq!(keyboard.deadline(), None);
     }
 
     #[test]
     fn the_zones_are_set_in_percent_of_the_width() {
-        let everything = |precise: u32, all: u32, from_left: bool| {
+        let borders = |words: u32, endless: u32, from_left: bool| {
             let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
             keyboard.gestures.delete_from_left = from_left;
-            keyboard.gestures.delete_precise_percent = precise;
-            keyboard.gestures.delete_all_percent = all;
+            keyboard.gestures.delete_words_percent = words;
+            keyboard.gestures.delete_endless_percent = endless;
             let steps: Vec<(f32, u64)> = (1..=99).map(|i| (1008.0 - 10.0 * i as f32, 400 + 50 * i as u64)).collect();
             let actions = slide_to(&mut keyboard, &steps);
-            let characters = actions.iter().filter_map(|action| if let Action::Delete { characters, .. } = action { Some(*characters) } else { None }).max();
-            (actions.iter().position(|action| matches!(action, Action::DeleteAll { .. })).map(|at| 1008.0 - steps[at].0), characters)
+            let first = |zone: u32| {
+                actions.iter().position(|action| matches!(action, Action::Delete { letters, words, .. } if if zone == 1 { *letters == 1000 } else { *words == 1000 })).map(|at| 1008.0 - steps[at].0)
+            };
+            (first(1), first(2))
         };
         let near = |found: Option<f32>, expected: f32| {
-            let found = found.expect("everything goes");
+            let found = found.expect("reached");
             assert!((found - expected).abs() <= 10.0, "{found} against {expected}");
         };
-        near(everything(45, 90, false).0, 907.0);
-        near(everything(45, 70, false).0, 706.0);
-        near(everything(45, 80, true).0, 806.0);
-        near(everything(60, 62, false).0, 706.0 /* the growing zone keeps its least room */);
-        assert_eq!(everything(45, 100, false).0, None, "at the far edge there is no everything zone");
-        assert_eq!(everything(45, 100, true).0, None);
-        // The precise zone's characters end at its border, wherever it is set.
-        assert!(everything(70, 100, false).1 > everything(45, 100, false).1);
-        assert_eq!(everything(10, 100, false).1, everything(40, 100, false).1, "the precise zone reaches past where slides start");
+        let (words, endless) = borders(45, 90, false);
+        near(words, 454.0);
+        near(endless, 907.0);
+        near(borders(60, 90, false).0, 605.0);
+        near(borders(45, 70, true).1, 706.0);
+        near(borders(60, 62, false).1, 706.0 /* the words zone keeps its least room */);
+        near(borders(10, 90, false).0, 403.0 /* the letters zone reaches past where slides start */);
+        assert_eq!(borders(45, 100, false).1, None, "without an endless zone the words zone runs to the far edge");
     }
 
     #[test]
@@ -2431,8 +2409,10 @@ mod tests {
         let w = keyboard.layout.cell_width;
         let y = keyboard.layout.numbers_bottom / 2.0;
         keyboard.touch_down(Point { x: 1.0, y }, 0);
-        assert_eq!(keyboard.touch_move(Point { x: 1.0 + 0.4 * w, y }, 200), Action::Delete { characters: 0, words: 0, started: true });
-        assert_eq!(keyboard.touch_move(Point { x: 1.0 + 0.8 * w, y }, 400), Action::Delete { characters: 1, words: 0, started: false });
+        assert!(matches!(keyboard.touch_move(Point { x: 1.0 + 0.4 * w, y }, 200), Action::Delete { started: true, .. }));
+        let (letters, _, _) = amounts(&keyboard.touch_move(Point { x: 1.0 + 1.5 * w, y }, 400));
+        assert!(letters > 200, "{letters}");
+        assert_eq!(keyboard.deleting().map(|(_, _, zone)| zone), Some(0));
     }
 
     #[test]
@@ -2471,33 +2451,11 @@ mod tests {
     }
 
     #[test]
-    fn resting_in_the_growing_zone_takes_words_ever_faster() {
+    fn sliding_back_to_the_start_puts_back_what_the_endless_zone_took() {
         let mut keyboard = Keyboard::new(space_middle(), 1008.0, 1.0, 400);
         let y = keyboard.layout.numbers_bottom / 2.0;
         keyboard.touch_down(Point { x: 1007.0, y }, 0);
-        keyboard.touch_move(Point { x: 808.0, y }, 400);
-        assert_eq!(keyboard.deadline(), None, "resting in the precise zone takes nothing");
-        let Action::Delete { words: moved, .. } = keyboard.touch_move(Point { x: 408.0, y }, 500) else { panic!() };
-        assert_eq!(keyboard.deadline(), Some(500 + HELD_WORD_START_MS));
-        let first = keyboard.tick(500 + HELD_WORD_START_MS);
-        assert!(matches!(first, Action::Delete { words, .. } if words == moved + 1), "{first:?}");
-        let pauses: Vec<u64> = (0..6)
-            .map(|_| {
-                let due = keyboard.deadline().unwrap();
-                keyboard.tick(due);
-                keyboard.deadline().unwrap() - due
-            })
-            .collect();
-        assert!(pauses.windows(2).all(|pair| pair[1] <= pair[0]), "{pauses:?}");
-        assert_eq!(keyboard.deleting().unwrap().2, 1);
-    }
-
-    #[test]
-    fn sliding_back_to_the_start_puts_back_what_resting_took() {
-        let mut keyboard = Keyboard::new(space_middle(), 1008.0, 1.0, 400);
-        let y = keyboard.layout.numbers_bottom / 2.0;
-        keyboard.touch_down(Point { x: 1007.0, y }, 0);
-        keyboard.touch_move(Point { x: 300.0, y }, 500);
+        keyboard.touch_move(Point { x: 30.0, y }, 500);
         let mut time = 500;
         for _ in 0..20 {
             time = keyboard.deadline().unwrap();
@@ -2505,13 +2463,13 @@ mod tests {
         }
         let mut last = Action::Nothing;
         for step in 1..=20 {
-            let x = 300.0 + (1007.0 - 300.0) * step as f32 / 20.0;
+            let x = 30.0 + (1007.0 - 30.0) * step as f32 / 20.0;
             let action = keyboard.touch_move(Point { x, y }, time + step * 20);
             if action != Action::Nothing {
                 last = action;
             }
         }
-        assert_eq!(last, Action::Delete { characters: 0, words: 0, started: false });
+        assert_eq!(amounts(&last), (0, 0, 0));
     }
 
     #[test]
@@ -2752,7 +2710,7 @@ mod tests {
                 last = action;
             }
         }
-        assert!(matches!(last, Action::Delete { characters, words, .. } if characters + words >= 4), "{last:?}");
+        assert!(matches!(last, Action::Delete { letters, .. } if letters >= 400), "{last:?}");
     }
 
     #[test]
@@ -2773,7 +2731,7 @@ mod tests {
         keyboard.touch_down(o, 0);
         keyboard.touch_move(Point { x: o.x - 0.7 * w, y: o.y }, 50);
         let flicked = keyboard.touch_up(Point { x: o.x - 1.4 * w, y: o.y + 0.1 * w }, 100);
-        assert!(matches!(flicked, Action::Delete { characters: 1, words: 0, .. }), "a flick takes one: {flicked:?}");
+        assert!(matches!(flicked, Action::Delete { letters, .. } if letters > 0) || flicked == Action::Backspace, "a flick takes one: {flicked:?}");
     }
 
     #[test]
