@@ -58,9 +58,7 @@
     <!-- Navigation rows -->
     <string name="languages">Sprachen</string>
     <string name="credits">Danksagungen</string>
-    <string name="credits_summary">Wörterbücher, Daten und Bibliotheken</string>
     <string name="help">Hilfe</string>
-    <string name="help_summary">Alles, was die Tastatur kann</string>
 
     <!-- Themes -->
     <string name="theme_dusk">Dämmerung</string>
@@ -125,7 +123,7 @@
     <string name="help_space_body">• Die Leertaste zeigt die verwendeten Sprachen. Die gerade geschriebene ist am hellsten und blass, solange sie nur aus dem Geschriebenen erraten ist.\n• Auf der Leertaste zur Seite wischen, um eine Sprache von Hand zu wählen: nacheinander jede deiner Sprachen, dann zurück zum Erraten. Das gilt für das aktuelle Feld.\n• Die Leertaste gedrückt halten und den Finger bewegen, um den Cursor durch den Text zu lenken, auch nach oben und unten.\n• Im Layout mit der Leertaste in der Mitte ist die Taste links davon das Komma oder das, was du unter Aussehen wählst: Rücktaste, Emoji, Zwischenablage, Diktat, Tastatur ausblenden oder eine zweite Leertaste.</string>
 
     <string name="help_delete_title">Löschen</string>
-    <string name="help_delete_body">• Vom Rand der Zahlenreihe hineinziehen, um im Vorbeiziehen zu löschen: je weiter und langsamer, desto mehr wird gelöscht. Zurückziehen, um den Text wiederherzustellen.\n• So weit ziehen wie unter Gesten eingestellt (standardmäßig 80 % der Breite), und alles vor dem Cursor wird auf einmal gelöscht. Zurückziehen, um es wiederzuholen. Auf Aus stellen, damit das Ziehen wie früher funktioniert, wobei Verweilen auf der anderen Seite ganze Wörter löscht.\n• Ein kurzes schnelles Wischen über die Zahlenreihe löscht ein Zeichen.\n• In der Mitte der Zahlenreihe ziehen oder sie gedrückt halten, um den Cursor zu bewegen.\n• Den Rand, von dem aus du ziehst, wählst du unter Gesten.</string>
+    <string name="help_delete_body">• Vom Rand der Zahlenreihe hineinziehen, um zu löschen. Das Ziehen durchquert drei Bereiche, unter Gesten gezeichnet und beim Ziehen auf den Tasten zu sehen: im ersten löscht jeder Schritt ein Zeichen; im zweiten gehen ganze Wörter, umso mehr pro Schritt, je weiter du ziehst, und Verweilen dort löscht weitere Wörter, immer schneller; der dritte löscht alles vor dem Cursor. Zurückziehen holt den Text zurück.\n• Die Grenzen der Bereiche ziehst du unter Gesten; die letzte ans Ende gezogen lässt das Löschen von allem weg.\n• Ein kurzes schnelles Wischen über die Zahlenreihe löscht ein Zeichen.\n• In der Mitte der Zahlenreihe ziehen oder sie gedrückt halten, um den Cursor zu bewegen.\n• Den Rand, von dem aus du ziehst, wählst du unter Gesten.</string>
 
     <string name="help_look_title">Layout, Größe und Designs</string>
     <string name="help_look_body">• Zwei Layouts: Leertaste unten oder in der Mitte, was die Voreinstellung ist.\n• Umschalt- und Rücktaste können an den Enden der dritten Reihe hinzugefügt werden.\n• Unter Größe lassen sich die ganze Tastatur, die Buchstabentasten und die Zahlenreihe einzeln skalieren, oder die Zahlenreihe entfällt. Ohne sie liegen die Ziffern bei den Symbolen, und die Umschalt- und Rücktaste sind vorhanden.\n• Ein Design wählst du unter Aussehen; die Start-Designs färben jeden Buchstaben nach seiner QWERTZ-Reihe, damit verschobene Buchstaben leicht zu finden bleiben.\n• Im Querformat entfallen die Vorschlagsleiste und die Zahlenreihe, damit die App Platz hat; die Umschalt- und Rücktaste übernehmen, und die Taste links der Leertaste kann die Zwischenablage oder das Diktat öffnen.\n• App-Sprache stellt die App, auch diese Hilfe, zwischen Englisch und Deutsch um.</string>
@@ -146,4 +144,14 @@
     <string name="delete_zone_growing">Wörter</string>
     <string name="delete_zone_all">alles</string>
     <string name="delete_zones_info">Vom Rand aus über die Zahlenreihe ziehen. Im ersten Bereich löscht jeder Schritt ein Zeichen. Im zweiten gehen ganze Wörter, umso mehr pro Schritt, je weiter du ziehst, und Verweilen dort löscht weitere Wörter. Der letzte Bereich löscht alles vor dem Cursor. Zurückziehen holt den Text zurück. Ziehe die letzte Grenze ans Ende, um das Löschen von allem wegzulassen.</string>
+    <string name="autocorrect_info">Aus macht nur Vorschläge. Eindeutige korrigiert, was sich nur in Großschreibung, Apostrophen und Akzenten unterscheidet, etwa fur zu für. Alle korrigiert auch Tippfehler. Die Rücktaste direkt nach einer Korrektur holt zurück, was du getippt hast.</string>
+    <string name="learn_info">Wörter, die du tippst und die kein Wörterbuch kennt, werden gemerkt und ab dann vorgeschlagen. Vergessen löscht sie alle.</string>
+    <string name="delete_from_info">Der Rand der Zahlenreihe, von dem aus dein Daumen zum Löschen hineinzieht. Der linke Rand passt zum Tippen mit der linken Hand.</string>
+    <string name="voice_info">An lädt einmalig ein Sprachmodell herunter und macht das Mikrofon in der Leiste zum Diktat. Die Sprache wird auf dem Telefon erkannt und verlässt es nie. Aus löscht das Modell wieder.</string>
+    <string name="layout_info">Wo die Leertaste liegt: in der unteren Reihe oder zwischen den Buchstaben, mit einer Taste deiner Wahl links davon.</string>
+    <string name="left_key_info">Die Taste links der Leertaste im Layout mit der Leertaste in der Mitte.</string>
+    <string name="edit_keys_info">Fügt Umschalt- und Rücktaste an den Enden der dritten Buchstabenreihe hinzu, neben dem Hochwischen für Großbuchstaben und dem Ziehen zum Löschen.</string>
+    <string name="size_all_info">Skaliert die Höhe der ganzen Tastatur.</string>
+    <string name="size_keys_info">Skaliert die Höhe der Buchstabentasten; die Zahlenreihe behält ihre eigene.</string>
+    <string name="size_numbers_info">Die Höhe der Zahlenreihe, auf der Ziehen löscht und den Cursor bewegt.</string>
 </resources>

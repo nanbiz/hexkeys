@@ -41,6 +41,8 @@ class SettingsActivity : LocalizedActivity() {
         const val VOICE = "voice"
 
         private const val THEME_COLUMNS = 3
+        private const val MENU_HELP = 1
+        private const val MENU_CREDITS = 2
     }
 
     private lateinit var setup: View
@@ -75,20 +77,27 @@ class SettingsActivity : LocalizedActivity() {
             },
         ))
 
+        languages = TextView(this).apply {
+            textSize = 15f
+            setTextColor(ui.secondaryText)
+        }
         column.addView(ui.heading(getString(R.string.typing)))
         column.addView(ui.card(
-            ui.label(getString(R.string.autocorrect)),
+            ui.titled(getString(R.string.autocorrect), getString(R.string.autocorrect_info)),
             ui.segmented(
                 Dictionaries.AUTOCORRECT_MODES.zip(listOf(getString(R.string.off), getString(R.string.autocorrect_obvious), getString(R.string.autocorrect_all))),
                 Dictionaries.autocorrectMode(this),
             ) { id -> ui.preferences.edit().putString(Dictionaries.AUTOCORRECT_MODE, id).apply() },
             learningRow(),
+            ui.navigationRow(getString(R.string.languages), languages) {
+                startActivity(Intent(this, LanguagesActivity::class.java))
+            },
         ))
 
         column.addView(ui.heading(getString(R.string.gestures)))
         val zones = DeleteZones(this, ui)
         column.addView(ui.card(
-            ui.label(getString(R.string.delete_from)),
+            ui.titled(getString(R.string.delete_from), getString(R.string.delete_from_info)),
             ui.segmented(
                 listOf("left" to getString(R.string.left_edge), "right" to getString(R.string.right_edge)),
                 if (ui.preferences.getBoolean(KeyboardView.DELETE_FROM_LEFT, false)) "left" else "right",
@@ -96,70 +105,71 @@ class SettingsActivity : LocalizedActivity() {
                 ui.preferences.edit().putBoolean(KeyboardView.DELETE_FROM_LEFT, id == "left").apply()
                 zones.fromLeft = id == "left"
             },
-            LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                val label = ui.label(getString(R.string.delete_zones))
-                setPadding(0, label.paddingTop, 0, label.paddingBottom)
-                addView(label.apply { setPadding(0, 0, 0, 0) })
-                addView(ui.info(getString(R.string.delete_zones_info)))
-            },
+            ui.titled(getString(R.string.delete_zones), getString(R.string.delete_zones_info)),
             zones,
         ))
 
-        column.addView(ui.heading(getString(R.string.voice)))
+        column.addView(ui.heading(getString(R.string.voice), getString(R.string.voice_info)))
         column.addView(voiceCard())
 
-        column.addView(ui.heading(getString(R.string.look)))
-        layouts = layoutPicker()
+        val look = ui.heading(getString(R.string.look))
+        column.addView(look)
         column.addView(ui.card(
-            ui.label(getString(R.string.layout)),
-            layouts,
+            ui.titled(getString(R.string.layout), getString(R.string.layout_info)),
+            layoutPicker(),
             *leftKeyViews.toTypedArray(),
-            ui.toggle(getString(R.string.edit_keys), KeyboardView.EDIT_KEYS) { layouts.invalidateAll() },
+            ui.toggle(getString(R.string.edit_keys), KeyboardView.EDIT_KEYS, info = getString(R.string.edit_keys_info)) { preview.refresh() },
             ui.label(getString(R.string.theme)),
             themePicker(),
         ))
 
         column.addView(ui.heading(getString(R.string.size)))
-        column.addView(ui.card(
-            ui.slider(getString(R.string.size_all), KeyboardView.SIZE_ALL, KeyboardView.SIZE_RANGE, KeyboardView.SIZE_DEFAULT) { layouts.invalidateAll() },
-            ui.slider(getString(R.string.size_keys), KeyboardView.SIZE_KEYS, KeyboardView.SIZE_RANGE, KeyboardView.SIZE_DEFAULT) { layouts.invalidateAll() },
+        val sizes = ui.card(
+            ui.slider(getString(R.string.size_all), KeyboardView.SIZE_ALL, KeyboardView.SIZE_RANGE, KeyboardView.SIZE_DEFAULT, info = getString(R.string.size_all_info)) { preview.refresh() },
+            ui.slider(getString(R.string.size_keys), KeyboardView.SIZE_KEYS, KeyboardView.SIZE_RANGE, KeyboardView.SIZE_DEFAULT, info = getString(R.string.size_keys_info)) { preview.refresh() },
             ui.toggle(getString(R.string.number_row), KeyboardView.NUMBER_ROW, default = true, info = getString(R.string.number_row_hint)) {
                 numberRowHeight.visibility = if (KeyboardView.numberRow(ui.preferences)) View.VISIBLE else View.GONE
-                layouts.invalidateAll()
+                preview.refresh()
             },
             numberRowHeight,
-        ))
+        )
+        column.addView(sizes)
 
-        languages = TextView(this).apply {
-            textSize = 15f
-            setTextColor(ui.secondaryText)
-        }
-        column.addView(ui.card(ui.navigationRow(getString(R.string.languages), languages) {
-            startActivity(Intent(this, LanguagesActivity::class.java))
-        }).apply { (layoutParams as LinearLayout.LayoutParams).topMargin = ui.dp(24) })
-
-        column.addView(ui.card(ui.navigationRow(getString(R.string.help), TextView(this).apply {
-            text = getString(R.string.help_summary)
-            textSize = 15f
-            setTextColor(ui.secondaryText)
-        }) {
-            startActivity(Intent(this, HelpActivity::class.java))
-        }))
-
-        column.addView(ui.card(ui.navigationRow(getString(R.string.credits), TextView(this).apply {
-            text = getString(R.string.credits_summary)
-            textSize = 15f
-            setTextColor(ui.secondaryText)
-        }) {
-            startActivity(Intent(this, CreditsActivity::class.java))
-        }))
-
+        // Room at the end as tall as the preview, so everything scrolls up clear of it.
+        val room = View(this)
+        column.addView(room, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0))
         val page = ui.page(column)
-        setContentView(page)
+        setContentView(android.widget.FrameLayout(this).apply {
+            addView(page)
+            addView(preview, android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM))
+        })
+        // The keyboard as it will look stands where it will be, while the settings for its look are on screen.
+        fun place() {
+            val uncovered = page.scrollY + page.height - preview.height
+            val shown = look.top < uncovered - ui.dp(64) && sizes.bottom > page.scrollY + ui.dp(64)
+            preview.animate().translationY(if (shown) 0f else preview.height.toFloat()).setDuration(150).start()
+            if (room.layoutParams.height != preview.height) room.layoutParams = room.layoutParams.apply { height = preview.height }
+        }
+        page.setOnScrollChangeListener { _, _, _, _, _ -> place() }
+        preview.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> place() }
         title = getString(R.string.app_name)
         if (intent.getStringExtra(SECTION) == VOICE) showVoice(page)
+    }
+
+    /** Help and credits in the title bar's menu, the page itself being the settings. */
+    override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
+        menu.add(0, MENU_HELP, 0, R.string.help)
+        menu.add(0, MENU_CREDITS, 1, R.string.credits)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
+        when (item.itemId) {
+            MENU_HELP -> startActivity(Intent(this, HelpActivity::class.java))
+            MENU_CREDITS -> startActivity(Intent(this, CreditsActivity::class.java))
+            else -> return super.onOptionsItemSelected(item)
+        }
+        return true
     }
 
     /**
@@ -223,7 +233,7 @@ class SettingsActivity : LocalizedActivity() {
 
     /** Switches speech input on, for the microphone button arriving with it off. */
     private var startDefault: () -> Unit = {}
-    private lateinit var layouts: LayoutTiles
+    private val preview by lazy { KeyboardPreview(this) }
 
     /**
      * Speech input off or on, its model's download progress while it
@@ -282,7 +292,7 @@ class SettingsActivity : LocalizedActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        val toggle = ui.toggle(getString(R.string.learn_new_words), Dictionaries.LEARNING)
+        val toggle = ui.toggle(getString(R.string.learn_new_words), Dictionaries.LEARNING, info = getString(R.string.learn_info))
         row.addView(toggle, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         if (Dictionaries.learned(this).isNotEmpty()) {
             val clear = ui.textButton(getString(R.string.forget))
@@ -297,8 +307,8 @@ class SettingsActivity : LocalizedActivity() {
 
     /** How tall the number row is, offered while there is one. */
     private val numberRowHeight by lazy {
-        ui.slider(getString(R.string.size_numbers), KeyboardView.SIZE_NUMBERS, KeyboardView.SIZE_NUMBERS_RANGE, KeyboardView.SIZE_DEFAULT) {
-            layouts.invalidateAll()
+        ui.slider(getString(R.string.size_numbers), KeyboardView.SIZE_NUMBERS, KeyboardView.SIZE_NUMBERS_RANGE, KeyboardView.SIZE_DEFAULT, info = getString(R.string.size_numbers_info)) {
+            preview.refresh()
         }.also { it.visibility = if (KeyboardView.numberRow(ui.preferences)) View.VISIBLE else View.GONE }
     }
 
@@ -311,54 +321,28 @@ class SettingsActivity : LocalizedActivity() {
             "space" to getString(R.string.left_key_space),
         )
         listOf(
-            ui.label(getString(R.string.left_key)),
+            ui.titled(getString(R.string.left_key), getString(R.string.left_key_info)),
             ui.segmented(
                 KeyboardView.LEFT_KEYS.map { it to names.getValue(it) },
                 ui.preferences.getString(KeyboardView.LEFT_KEY, null) ?: KeyboardView.DEFAULT_LEFT_KEY,
                 columns = 4,
             ) { id ->
                 ui.preferences.edit().putString(KeyboardView.LEFT_KEY, id).apply()
-                layouts.invalidateAll()
+                preview.refresh()
             },
         ).onEach { it.visibility = if (KeyboardView.spaceMiddle(ui.preferences)) View.VISIBLE else View.GONE }
     }
 
-    /** The layouts side by side as tiles with a drawing of their keys, the chosen one outlined. */
-    private fun layoutPicker(): LayoutTiles {
-        val tiles = LayoutTiles(this)
-        val chosen = if (KeyboardView.spaceMiddle(ui.preferences)) KeyboardView.SPACE_MIDDLE else KeyboardView.SPACE_BOTTOM
-        val views = mutableListOf<View>()
-        for ((id, name) in listOf(KeyboardView.SPACE_BOTTOM to getString(R.string.layout_space_bottom), KeyboardView.SPACE_MIDDLE to getString(R.string.layout_space_middle))) {
-            val preview = LayoutPreview(this, id == KeyboardView.SPACE_MIDDLE)
-            tiles.previews += preview
-            val tile = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER_HORIZONTAL
-                setPadding(ui.dp(6), ui.dp(6), ui.dp(6), ui.dp(6))
-                addView(preview, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-                addView(TextView(this@SettingsActivity).apply {
-                    text = name
-                    textSize = 13f
-                    setTextColor(ui.text)
-                    gravity = Gravity.CENTER
-                    setPadding(0, ui.dp(6), 0, 0)
-                })
-            }
-            views += tile
-            tile.setOnClickListener {
-                views.forEach { ui.outline(it, it === tile) }
-                ui.preferences.edit().putString(KeyboardView.LAYOUT, id).apply()
-                leftKeyViews.forEach { it.visibility = if (id == KeyboardView.SPACE_MIDDLE) View.VISIBLE else View.GONE }
-            }
-            ui.outline(tile, id == chosen)
-            tiles.addView(tile, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
-                setMargins(ui.dp(2), 0, ui.dp(2), 0)
-            })
-        }
-        return tiles
+    /** The two layouts, which the preview below shows as they are chosen. */
+    private fun layoutPicker(): View = ui.segmented(
+        listOf(KeyboardView.SPACE_BOTTOM to getString(R.string.layout_space_bottom), KeyboardView.SPACE_MIDDLE to getString(R.string.layout_space_middle)),
+        if (KeyboardView.spaceMiddle(ui.preferences)) KeyboardView.SPACE_MIDDLE else KeyboardView.SPACE_BOTTOM,
+    ) { id ->
+        ui.preferences.edit().putString(KeyboardView.LAYOUT, id).apply()
+        leftKeyViews.forEach { it.visibility = if (id == KeyboardView.SPACE_MIDDLE) View.VISIBLE else View.GONE }
+        preview.refresh()
     }
 
-    /** Every theme as a tile with its preview and name, the chosen one outlined. */
     /** Every theme at once, the dark ones or the light ones, picked by a switch above them. */
     private fun themePicker(): View {
         val chosen = Theme.current(this)
@@ -408,7 +392,7 @@ class SettingsActivity : LocalizedActivity() {
         tile.setOnClickListener {
             views.forEach { ui.outline(it, it === tile) }
             ui.preferences.edit().putString(Theme.KEY, theme.id).apply()
-            layouts.invalidateAll()
+            preview.refresh()
         }
         ui.outline(tile, theme.id == chosen)
         return tile
@@ -470,6 +454,21 @@ class Ui(private val activity: Activity) {
         typeface = Typeface.DEFAULT_BOLD
         setTextColor(accent)
         setPadding(dp(4), dp(20), 0, dp(8))
+    }
+
+    /** A [heading] with an [info] button right after it. */
+    fun heading(text: String, info: String): View = withInfo(heading(text), info)
+
+    /** A [label] with an [info] button right after it. */
+    fun titled(text: String, info: String): View = withInfo(label(text), info)
+
+    /** `title` and an [info] button on one line, the title's padding moved to the row so both centre on it. */
+    private fun withInfo(title: TextView, info: String) = LinearLayout(activity).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(title.paddingLeft, title.paddingTop, 0, title.paddingBottom)
+        addView(title.apply { setPadding(0, 0, 0, 0) })
+        addView(info(info))
     }
 
     fun label(text: String) = TextView(activity).apply {
@@ -653,6 +652,11 @@ class Ui(private val activity: Activity) {
         bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
                 value.text = describe(now())
+                // Kept as it moves, so what shows the setting follows the finger.
+                if (fromUser) {
+                    preferences.edit().putInt(key, now()).apply()
+                    changed()
+                }
             }
 
             override fun onStartTrackingTouch(bar: SeekBar) {}
@@ -670,11 +674,7 @@ class Ui(private val activity: Activity) {
                 if (info == null) {
                     addView(label(title), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
                 } else {
-                    // The label's padding goes to the row, so the label and the i centre on the same line.
-                    val label = label(title)
-                    setPadding(0, label.paddingTop, 0, label.paddingBottom)
-                    addView(label.apply { setPadding(0, 0, 0, 0) })
-                    addView(info(info))
+                    addView(titled(title, info))
                     addView(View(activity), LinearLayout.LayoutParams(0, 0, 1f))
                 }
                 addView(value)
@@ -831,18 +831,11 @@ private class ThemePreview(context: Context, private val theme: Theme) : View(co
     }
 }
 
-/** The layout tiles in a row, with their drawings to redraw when the keys change. */
-private class LayoutTiles(context: Context) : LinearLayout(context) {
-    val previews = mutableListOf<LayoutPreview>()
-
-    fun invalidateAll() = previews.forEach { it.requestLayout() }
-}
-
 /**
- * A layout's keys as the keyboard draws them, in the chosen theme, shrunk
- * to the width it is given; with shift and backspace when they are set up.
+ * The keyboard as the settings make it, at its real size: the strip's room,
+ * then the keys in the chosen layout, theme and sizes, as wide as the screen.
  */
-private class LayoutPreview(context: Context, private val spaceMiddle: Boolean) : View(context) {
+private class KeyboardPreview(context: Context) : View(context) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val labels = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
     private val gap = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
@@ -856,9 +849,27 @@ private class LayoutPreview(context: Context, private val spaceMiddle: Boolean) 
         val editKeys = preferences.getBoolean(KeyboardView.EDIT_KEYS, false)
         val leftKey = preferences.getString(KeyboardView.LEFT_KEY, null) ?: KeyboardView.DEFAULT_LEFT_KEY
         val (stretch, numberScale) = KeyboardView.sizes(preferences)
+        val spaceMiddle = KeyboardView.spaceMiddle(preferences)
         handle = Core.create(width.toFloat(), stretch, numberScale, 400, spaceMiddle, leftKey, editKeys, !KeyboardView.numberRow(preferences))
         theme = Theme.current(context)
-        setMeasuredDimension(width, Core.height(handle).toInt())
+        setMeasuredDimension(width, strip + Core.height(handle).toInt() + paddingBottom)
+    }
+
+    private val strip = (KeyboardView.STRIP_DP * resources.displayMetrics.density).toInt()
+
+    /** Drawn anew from the settings as they are now. */
+    fun refresh() {
+        requestLayout()
+        invalidate()
+    }
+
+    init {
+        // Below it the navigation bar, as below the keyboard.
+        setOnApplyWindowInsetsListener { view, insets ->
+            @Suppress("DEPRECATION")
+            view.setPadding(0, 0, 0, insets.systemWindowInsetBottom)
+            insets
+        }
     }
 
     override fun onDetachedFromWindow() {
@@ -869,10 +880,10 @@ private class LayoutPreview(context: Context, private val spaceMiddle: Boolean) 
 
     override fun onDraw(canvas: Canvas) {
         if (handle == 0L) return
-        val corner = resources.displayMetrics.density * 8
         paint.color = theme.background
         paint.pathEffect = null
-        canvas.drawRoundRect(0f, 0f, width.toFloat(), height.toFloat(), corner, corner, paint)
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+        canvas.translate(0f, strip.toFloat())
         val cell = Core.cellWidth(handle)
         gap.color = theme.background
         gap.strokeWidth = cell * 0.06f
