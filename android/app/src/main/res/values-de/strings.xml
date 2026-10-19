@@ -142,4 +142,6 @@
     <string name="help_privacy_title">Datenschutz</string>
     <string name="help_privacy_body">hexkeys hat kein Konto, keine Werbung und keine Tracker. Das Netzwerk wird nur genutzt, um die Wörterbücher, Wortstatistiken und das Sprachmodell herunterzuladen, die du anforderst; alles, was du tippst und sagst, bleibt auf dem Telefon.</string>
     <string name="info">Info</string>
+    <string name="themes_dark">Dunkel</string>
+    <string name="themes_light">Hell</string>
 </resources>

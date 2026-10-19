@@ -20,7 +20,6 @@ import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
-import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -40,6 +39,8 @@ class SettingsActivity : LocalizedActivity() {
         /** Extra naming the part of the settings to show, such as [VOICE]. */
         const val SECTION = "section"
         const val VOICE = "voice"
+
+        private const val THEME_COLUMNS = 3
     }
 
     private lateinit var setup: View
@@ -353,40 +354,59 @@ class SettingsActivity : LocalizedActivity() {
     }
 
     /** Every theme as a tile with its preview and name, the chosen one outlined. */
+    /** Every theme at once, the dark ones or the light ones, picked by a switch above them. */
     private fun themePicker(): View {
-        val tiles = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val chosen = Theme.current(this).id
-        val all = Theme.all(this)
+        val chosen = Theme.current(this)
+        val (light, dark) = Theme.all(this).partition { it.isLight }
         val views = mutableListOf<View>()
-        for (theme in all) {
-            val tile = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER_HORIZONTAL
-                setPadding(ui.dp(6), ui.dp(6), ui.dp(6), ui.dp(6))
-                addView(ThemePreview(this@SettingsActivity, theme), LinearLayout.LayoutParams(ui.dp(104), ui.dp(44)))
-                addView(TextView(this@SettingsActivity).apply {
-                    text = theme.name
-                    textSize = 13f
-                    setTextColor(ui.text)
-                    gravity = Gravity.CENTER
-                    setPadding(0, ui.dp(6), 0, 0)
+        fun grid(themes: List<Theme>) = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            for (start in themes.indices step THEME_COLUMNS) {
+                addView(LinearLayout(this@SettingsActivity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    for (theme in themes.subList(start, minOf(start + THEME_COLUMNS, themes.size))) {
+                        addView(themeTile(theme, chosen.id, views), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                    }
+                    // A short last row keeps its tiles as wide as the others.
+                    repeat(start + THEME_COLUMNS - minOf(start + THEME_COLUMNS, themes.size)) {
+                        addView(View(this@SettingsActivity), LinearLayout.LayoutParams(0, 0, 1f))
+                    }
                 })
             }
-            views += tile
-            tile.setOnClickListener {
-                views.forEach { ui.outline(it, it === tile) }
-                ui.preferences.edit().putString(Theme.KEY, theme.id).apply()
-                layouts.invalidateAll()
-            }
-            ui.outline(tile, theme.id == chosen)
-            tiles.addView(tile, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                marginEnd = ui.dp(8)
+        }
+        val grids = mapOf("dark" to grid(dark), "light" to grid(light))
+        fun show(kind: String) = grids.forEach { (id, grid) -> grid.visibility = if (id == kind) View.VISIBLE else View.GONE }
+        val kind = if (chosen.isLight) "light" else "dark"
+        show(kind)
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(ui.segmented(listOf("dark" to getString(R.string.themes_dark), "light" to getString(R.string.themes_light)), kind) { show(it) })
+            grids.values.forEach { addView(it) }
+        }
+    }
+
+    private fun themeTile(theme: Theme, chosen: String, views: MutableList<View>): View {
+        val tile = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(ui.dp(6), ui.dp(6), ui.dp(6), ui.dp(6))
+            addView(ThemePreview(this@SettingsActivity, theme), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ui.dp(44)))
+            addView(TextView(this@SettingsActivity).apply {
+                text = theme.name
+                textSize = 13f
+                setTextColor(ui.text)
+                gravity = Gravity.CENTER
+                setPadding(0, ui.dp(6), 0, 0)
             })
         }
-        return HorizontalScrollView(this).apply {
-            isHorizontalScrollBarEnabled = false
-            addView(tiles)
+        views += tile
+        tile.setOnClickListener {
+            views.forEach { ui.outline(it, it === tile) }
+            ui.preferences.edit().putString(Theme.KEY, theme.id).apply()
+            layouts.invalidateAll()
         }
+        ui.outline(tile, theme.id == chosen)
+        return tile
     }
 }
 
@@ -645,7 +665,10 @@ class Ui(private val activity: Activity) {
                 if (info == null) {
                     addView(label(title), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
                 } else {
-                    addView(label(title))
+                    // The label's padding goes to the row, so the label and the i centre on the same line.
+                    val label = label(title)
+                    setPadding(0, label.paddingTop, 0, label.paddingBottom)
+                    addView(label.apply { setPadding(0, 0, 0, 0) })
                     addView(info(info))
                     addView(View(activity), LinearLayout.LayoutParams(0, 0, 1f))
                 }

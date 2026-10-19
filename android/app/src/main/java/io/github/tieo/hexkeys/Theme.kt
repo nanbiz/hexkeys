@@ -25,6 +25,9 @@ data class Theme(
 
     val popup get() = blend(other, label, 0.12f)
 
+    /** Dark labels on a light background. */
+    val isLight get() = Color.luminance(background) > 0.5f
+
     companion object {
         const val KEY = "theme"
 
