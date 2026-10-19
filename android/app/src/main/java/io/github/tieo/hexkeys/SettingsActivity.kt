@@ -1,6 +1,7 @@
 package io.github.tieo.hexkeys
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
@@ -20,6 +21,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.HorizontalScrollView
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
@@ -95,8 +97,8 @@ class SettingsActivity : LocalizedActivity() {
                 range = KeyboardView.DELETE_ALL_LEAST..KeyboardView.DELETE_ALL_OFF,
                 default = KeyboardView.DELETE_ALL_DEFAULT,
                 describe = { if (it == KeyboardView.DELETE_ALL_OFF) getString(R.string.off) else getString(R.string.percent, it) },
+                info = getString(R.string.delete_all_hint),
             ),
-            ui.label(getString(R.string.delete_all_hint)),
         ))
 
         column.addView(ui.heading(getString(R.string.voice)))
@@ -117,12 +119,11 @@ class SettingsActivity : LocalizedActivity() {
         column.addView(ui.card(
             ui.slider(getString(R.string.size_all), KeyboardView.SIZE_ALL, KeyboardView.SIZE_RANGE, KeyboardView.SIZE_DEFAULT) { layouts.invalidateAll() },
             ui.slider(getString(R.string.size_keys), KeyboardView.SIZE_KEYS, KeyboardView.SIZE_RANGE, KeyboardView.SIZE_DEFAULT) { layouts.invalidateAll() },
-            ui.toggle(getString(R.string.number_row), KeyboardView.NUMBER_ROW, default = true) {
+            ui.toggle(getString(R.string.number_row), KeyboardView.NUMBER_ROW, default = true, info = getString(R.string.number_row_hint)) {
                 numberRowHeight.visibility = if (KeyboardView.numberRow(ui.preferences)) View.VISIBLE else View.GONE
                 layouts.invalidateAll()
             },
             numberRowHeight,
-            ui.label(getString(R.string.number_row_hint)),
         ))
 
         languages = TextView(this).apply {
@@ -475,6 +476,34 @@ class Ui(private val activity: Activity) {
         }
     }
 
+    /** [toggle] with an [info] button right after its label. */
+    fun toggle(label: String, key: String, default: Boolean = false, info: String, changed: () -> Unit = {}) =
+        LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(TextView(activity).apply {
+                text = label
+                setTextColor(this@Ui.text)
+                textSize = 17f
+            })
+            addView(info(info))
+            addView(View(activity), LinearLayout.LayoutParams(0, 0, 1f))
+            addView(toggle("", key, default, changed).apply { contentDescription = label })
+        }
+
+    /** A small i that shows `text` when tapped, for what a setting does that its controls cannot show. */
+    fun info(text: String) = ImageView(activity).apply {
+        setImageResource(R.drawable.icon_info)
+        imageTintList = ColorStateList.valueOf(secondaryText)
+        contentDescription = activity.getString(R.string.info)
+        val pad = dp(10)
+        setPadding(pad, pad, pad, pad)
+        layoutParams = LinearLayout.LayoutParams(dp(40), dp(40))
+        setOnClickListener {
+            AlertDialog.Builder(activity).setMessage(text).setPositiveButton(android.R.string.ok, null).show()
+        }
+    }
+
     fun primaryButton(text: String) = Button(activity).apply {
         this.text = text
         isAllCaps = false
@@ -581,6 +610,7 @@ class Ui(private val activity: Activity) {
         default: Int,
         step: Int = 5,
         describe: (Int) -> String = { "$it %" },
+        info: String? = null,
         changed: () -> Unit = {},
     ): View {
         val value = TextView(activity).apply {
@@ -612,7 +642,13 @@ class Ui(private val activity: Activity) {
             addView(LinearLayout(activity).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                addView(label(title), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                if (info == null) {
+                    addView(label(title), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                } else {
+                    addView(label(title))
+                    addView(info(info))
+                    addView(View(activity), LinearLayout.LayoutParams(0, 0, 1f))
+                }
                 addView(value)
             })
             addView(bar)

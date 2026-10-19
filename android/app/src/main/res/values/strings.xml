@@ -142,4 +142,5 @@
 
     <string name="help_privacy_title">Privacy</string>
     <string name="help_privacy_body">hexkeys has no account, no ads and no trackers. It uses the network only to download the dictionaries, word statistics and speech model you ask for; everything you type and say stays on the phone.</string>
+    <string name="info">Info</string>
 </resources>
