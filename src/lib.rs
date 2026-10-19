@@ -1499,7 +1499,7 @@ impl Keyboard {
                 Action::Commit(upper(&label))
             }
             // On punctuation a flick up types the key's first alternative.
-            Gesture::Up if flicked(&label).is_some() => Action::Commit(flicked(&label).unwrap_or_default().to_owned()),
+            Gesture::Up if self.flicked(&label).is_some() => Action::Commit(self.flicked(&label).unwrap_or_default().to_owned()),
             // Where a flick up means nothing, the key is typed.
             Gesture::Up => self.press(touch.key),
             Gesture::Path if self.is_swipe(&touch) => {
@@ -1712,9 +1712,10 @@ impl Keyboard {
         let mut choices: Vec<String> = match label.chars().next().filter(|_| is_letter(label)) {
             Some(letter) => self.accents.get(&letter).into_iter().flatten().map(|c| c.to_string()).collect(),
             // What a flick up types already is not offered again.
-            None => alternates(label)
+            None => self
+                .alternates(label)
                 .iter()
-                .skip(if flicked(label).is_some() { 1 } else { 0 })
+                .skip(if self.flicked(label).is_some() { 1 } else { 0 })
                 .map(|c| (*c).to_owned())
                 .collect(),
         };
@@ -1774,7 +1775,21 @@ impl Keyboard {
     /// What a flick up types on a punctuation key, shown small on it; empty
     /// for other keys.
     pub fn hint(&self, index: usize) -> &'static str {
-        flicked(&self.layout.keys[index].label).unwrap_or("")
+        self.flicked(&self.layout.keys[index].label).unwrap_or("")
+    }
+
+    /// What flicking up on a key that is no letter types: the first of its
+    /// [`Keyboard::alternates`] on the letter page's punctuation keys. Other
+    /// keys' alternates, the digits' fractions and the symbols' typographic
+    /// kinds, are only offered when held, and so are not shown on them.
+    fn flicked(&self, label: &str) -> Option<&'static str> {
+        if matches!(label, "." | "?" | ",") { self.alternates(label).first().copied() } else { None }
+    }
+
+    /// A key's long-press alternatives, left to right: [`alternates`], with
+    /// the comma left off the full stop where the page has a comma key.
+    fn alternates(&self, label: &str) -> &'static [&'static str] {
+        if label == "." && self.layout.keys.iter().any(|key| key.label == ",") { &[":", "-", ";"] } else { alternates(label) }
     }
 
     /// The QWERTZ row of the key's letter, for themes; None for other keys.
@@ -1831,19 +1846,12 @@ pub fn qwertz_row(label: &str) -> Option<usize> {
 /// Long-press alternatives of punctuation, left to right. Letters offer
 /// the accented letters of the languages in use instead, see
 /// [`Keyboard::accents`].
-/// What flicking up on a key that is no letter types: the first alternate
-/// of the letter page's punctuation keys. Other keys' alternates, the
-/// digits' fractions and the symbols' typographic kinds, are only offered
-/// when held, and so are not shown on them.
-fn flicked(label: &str) -> Option<&'static str> {
-    if matches!(label, "." | "?" | ",") { alternates(label).first().copied() } else { None }
-}
-
 fn alternates(label: &str) -> &'static [&'static str] {
     match label {
         "." => &[",", ":", "-", ";"],
         "?" => &["!", "'", "\"", "¿", "¡"],
-        "," => &[":", "-", ";", "'", "\""],
+        // Next to a full stop that flicks to a colon, the comma flicks to the semicolon.
+        "," => &[";", ":", "-", "'", "\""],
         // The digits that start fractions: the fractions they start, most used
         // first. The number row's other digits keep it for the cursor and
         // deleting.
@@ -2245,8 +2253,21 @@ mod tests {
         assert_eq!(keyboard.label(g), "G");
         assert_eq!(keyboard.touch_up(near(&keyboard, "g", 0.1, -0.6), 40), Action::Commit("G".into()));
         assert_eq!(keyboard.label(g), "g");
-        assert_eq!(gesture(&mut keyboard, ",", &[(0.0, -0.6)]), Action::Commit(":".into()), "punctuation gives its first alternative");
+        assert_eq!(gesture(&mut keyboard, ",", &[(0.0, -0.6)]), Action::Commit(";".into()), "punctuation gives its first alternative");
         assert_eq!(gesture(&mut keyboard, "space", &[(0.0, -0.6)]), Action::Commit(" ".into()), "where a flick up means nothing the key is typed");
+    }
+
+    #[test]
+    fn the_full_stop_offers_no_comma_where_a_comma_key_is_next_to_it() {
+        let mut middle = Keyboard::new(space_middle(), 1008.0, 1.0, 400);
+        let stop = keyboard_index(&middle, ".");
+        assert_eq!(middle.hint(stop), ":");
+        assert!(!middle.choices(stop).contains(&",".to_owned()));
+        assert_eq!(gesture(&mut middle, ".", &[(0.0, -0.6)]), Action::Commit(":".into()));
+        let mut beside = Keyboard::new(space_middle_with("emoji"), 1008.0, 1.0, 400);
+        assert_eq!(gesture(&mut beside, ".", &[(0.0, -0.6)]), Action::Commit(",".into()), "without a comma key the full stop keeps it");
+        let bottom = Keyboard::new(space_bottom(), 1008.0, 1.0, 400);
+        assert_eq!(bottom.hint(keyboard_index(&bottom, ".")), ",");
     }
 
     #[test]
