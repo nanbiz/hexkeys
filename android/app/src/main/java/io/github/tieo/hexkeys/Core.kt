@@ -26,12 +26,13 @@ object Core {
 
     /**
      * A keyboard fitted to [width] pixels; [stretch] makes cells taller than
-     * regular hexagons, and a finger held still for [longPressMs] is a long press.
+     * regular hexagons, [numberScale] makes the number row that many times as tall as it
+     * is, and a finger held still for [longPressMs] is a long press.
      * [spaceMiddle] puts space and the marks between the letters instead of
-     * below them; [editKeys] adds shift and backspace keys; [withoutNumbers]
+     * below them, with the key named [leftKey] left of space; [editKeys] adds shift and backspace keys; [withoutNumbers]
      * leaves out the number row and adds those keys, as in landscape.
      */
-    external fun create(width: Float, stretch: Float, longPressMs: Long, spaceMiddle: Boolean, editKeys: Boolean, withoutNumbers: Boolean): Long
+    external fun create(width: Float, stretch: Float, numberScale: Float, longPressMs: Long, spaceMiddle: Boolean, leftKey: String, editKeys: Boolean, withoutNumbers: Boolean): Long
     external fun destroy(handle: Long)
     external fun height(handle: Long): Float
     external fun keyCount(handle: Long): Int
@@ -74,10 +75,17 @@ object Core {
     external fun touchDown(handle: Long, x: Float, y: Float, time: Long)
     external fun touchMove(handle: Long, x: Float, y: Float, time: Long): Array<String>
 
-    /** Delete swipes from the left edge instead of the right; the capital gesture as 0 flick up, 1 hold. */
-    external fun configure(handle: Long, deleteFromLeft: Boolean)
+    /**
+     * Delete swipes from the left edge instead of the right, and how far a delete swipe
+     * reaches to delete everything, in percent of the width from that edge.
+     */
+    external fun configure(handle: Long, deleteFromLeft: Boolean, deleteAllPercent: Int)
 
-    /** What lifting means, as kind (commit, replace, backspace, enter, redraw, nothing) and text; replace has the old and new text split by a tab. */
+    /**
+     * What lifting means, as kind and text. The kinds are commit, backspace, enter,
+     * enter_action, emoji, clipboard, voice, hide, language (text 1 or -1), cursor (text "dx dy"),
+     * redraw, nothing, swipe, delete_all, and delete (text "pieces words started", the last two 0 or 1).
+     */
     external fun touchUp(handle: Long, x: Float, y: Float, time: Long): Array<String>
     external fun touchCancel(handle: Long)
 

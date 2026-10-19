@@ -9,6 +9,7 @@ import android.os.Build
  * The keyboard's colours. Letter keys take the colour of the row their
  * letter has on an ordinary QWERTZ keyboard ([rows], top to bottom); every
  * other key takes [other]. Pressed and popup shades derive from these.
+ * Every label has at least a 5:1 contrast against the keys it is on.
  */
 data class Theme(
     val id: String,
@@ -29,27 +30,62 @@ data class Theme(
 
         private fun starters(context: Context): List<Theme> = listOfNotNull(
             Theme(
-                "dusk", "Dusk", 0xFF1B1B1F.toInt(),
+                "dusk", context.getString(R.string.theme_dusk), 0xFF1B1B1F.toInt(),
                 listOf(0xFF2E3B5E.toInt(), 0xFF234845.toInt(), 0xFF4B2E4F.toInt()),
                 0xFF3A3A42.toInt(), 0xFFE8E8EE.toInt(), 0xFF6C7BD8.toInt(),
             ),
             Theme(
-                "paper", "Paper", 0xFFE4E4EA.toInt(),
+                "paper", context.getString(R.string.theme_paper), 0xFFE4E4EA.toInt(),
                 listOf(0xFFC7D7F6.toInt(), 0xFFC4E8D4.toInt(), 0xFFF4CFDA.toInt()),
                 0xFFFBFBFD.toInt(), 0xFF1B1B1F.toInt(), 0xFF4A5BC8.toInt(),
             ),
             Theme(
-                "ember", "Ember", 0xFF1E1A18.toInt(),
+                "ember", context.getString(R.string.theme_ember), 0xFF1E1A18.toInt(),
                 listOf(0xFF5A3A22.toInt(), 0xFF4E2A2A.toInt(), 0xFF3F3A22.toInt()),
                 0xFF3A3431.toInt(), 0xFFF3ECE6.toInt(), 0xFFE0894A.toInt(),
             ),
+            Theme(
+                "midnight", context.getString(R.string.theme_midnight), 0xFF0B1020.toInt(),
+                listOf(0xFF1E3A66.toInt(), 0xFF16404B.toInt(), 0xFF2F2C66.toInt()),
+                0xFF26304F.toInt(), 0xFFE6EBFA.toInt(), 0xFF7AA2FF.toInt(),
+            ),
+            Theme(
+                "aurora", context.getString(R.string.theme_aurora), 0xFF0C171C.toInt(),
+                listOf(0xFF1B4D52.toInt(), 0xFF284C75.toInt(), 0xFF40387A.toInt()),
+                0xFF1B2D34.toInt(), 0xFFE3F4F2.toInt(), 0xFF5FE0C2.toInt(),
+            ),
+            Theme(
+                "mocha", context.getString(R.string.theme_mocha), 0xFF1E1E2E.toInt(),
+                listOf(0xFF4A3F6E.toInt(), 0xFF3A5C4A.toInt(), 0xFF6E4A44.toInt()),
+                0xFF313244.toInt(), 0xFFCDD6F4.toInt(), 0xFFCBA6F7.toInt(),
+            ),
+            Theme(
+                "forest", context.getString(R.string.theme_forest), 0xFF0E1712.toInt(),
+                listOf(0xFF24492F.toInt(), 0xFF3C4C20.toInt(), 0xFF1F4A45.toInt()),
+                0xFF223027.toInt(), 0xFFE5F0E6.toInt(), 0xFF8FD18A.toInt(),
+            ),
+            Theme(
+                "abyss", context.getString(R.string.theme_abyss), 0xFF000000.toInt(),
+                listOf(0xFF172B4D.toInt(), 0xFF193526.toInt(), 0xFF351D44.toInt()),
+                0xFF1E1E1E.toInt(), 0xFFEDEDED.toInt(), 0xFF4DA3FF.toInt(),
+            ),
+            Theme(
+                "plum", context.getString(R.string.theme_plum), 0xFF191120.toInt(),
+                listOf(0xFF4D2A5C.toInt(), 0xFF5C2A45.toInt(), 0xFF3B2C66.toInt()),
+                0xFF2D2135.toInt(), 0xFFF2E6F5.toInt(), 0xFFE58AD6.toInt(),
+            ),
+            Theme(
+                "nordic", context.getString(R.string.theme_nordic), 0xFF2A303C.toInt(),
+                listOf(0xFF3B5575.toInt(), 0xFF3F5F56.toInt(), 0xFF57496E.toInt()),
+                0xFF3B4252.toInt(), 0xFFECEFF4.toInt(), 0xFF88C0D0.toInt(),
+            ),
             deviceColors(context),
             Theme(
-                "plain-dark", "Plain dark", 0xFF1B1B1F.toInt(),
+                "plain-dark", context.getString(R.string.theme_plain_dark), 0xFF1B1B1F.toInt(),
                 List(3) { 0xFF3A3A42.toInt() }, 0xFF3A3A42.toInt(), 0xFFE8E8EE.toInt(), 0xFF6C7BD8.toInt(),
             ),
             Theme(
-                "plain-light", "Plain light", 0xFFE4E4EA.toInt(),
+                "plain-light", context.getString(R.string.theme_plain_light), 0xFFE4E4EA.toInt(),
                 List(3) { 0xFFFBFBFD.toInt() }, 0xFFFBFBFD.toInt(), 0xFF1B1B1F.toInt(), 0xFF4A5BC8.toInt(),
             ),
         )
@@ -65,7 +101,7 @@ data class Theme(
             fun color(id: Int) = context.getColor(id)
             return if (night) {
                 Theme(
-                    "device", "Device colors", color(android.R.color.system_neutral1_900),
+                    "device", context.getString(R.string.theme_device), color(android.R.color.system_neutral1_900),
                     listOf(
                         color(android.R.color.system_accent1_800),
                         color(android.R.color.system_accent2_800),
@@ -76,7 +112,7 @@ data class Theme(
                 )
             } else {
                 Theme(
-                    "device", "Device colors", color(android.R.color.system_neutral1_100),
+                    "device", context.getString(R.string.theme_device), color(android.R.color.system_neutral1_100),
                     listOf(
                         color(android.R.color.system_accent1_100),
                         color(android.R.color.system_accent2_100),

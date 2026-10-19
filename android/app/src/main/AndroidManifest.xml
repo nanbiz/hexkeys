@@ -16,13 +16,13 @@
     </queries>
 
     <application
-        android:label="Hexkeys"
+        android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false">
 
         <activity
             android:name=".SettingsActivity"
-            android:label="Hexkeys"
+            android:label="@string/app_name"
             android:theme="@android:style/Theme.DeviceDefault"
             android:exported="true">
             <intent-filter>
@@ -33,19 +33,25 @@
 
         <activity
             android:name=".CreditsActivity"
-            android:label="Credits"
+            android:label="@string/credits"
+            android:theme="@android:style/Theme.DeviceDefault"
+            android:exported="false" />
+
+        <activity
+            android:name=".HelpActivity"
+            android:label="@string/help_title"
             android:theme="@android:style/Theme.DeviceDefault"
             android:exported="false" />
 
         <activity
             android:name=".LanguagesActivity"
-            android:label="Languages"
+            android:label="@string/languages"
             android:theme="@android:style/Theme.DeviceDefault"
             android:exported="false" />
 
         <service
             android:name=".HexInputMethod"
-            android:label="Hexkeys"
+            android:label="@string/app_name"
             android:permission="android.permission.BIND_INPUT_METHOD"
             android:exported="true">
             <intent-filter>

@@ -8,7 +8,7 @@
 
 use hexkeys::dictionary::Dictionary;
 use hexkeys::suggest::Lexicon;
-use hexkeys::{Action, Keyboard, Point, suggest, swipe, space_middle, space_bottom, with_shift_and_backspace, without_numbers};
+use hexkeys::{Action, Keyboard, Point, suggest, swipe, space_middle_with, space_bottom, with_number_scale, with_shift_and_backspace, without_numbers};
 use jni::JNIEnv;
 use jni::objects::{JByteArray, JClass, JFloatArray, JString};
 use jni::sys::{jboolean, jfloat, jfloatArray, jint, jlong, jobjectArray, jstring};
@@ -21,21 +21,25 @@ fn keyboard<'a>(handle: jlong) -> &'a mut Keyboard {
 
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_tieo_hexkeys_Core_create(
-    _env: JNIEnv,
+    mut env: JNIEnv,
     _class: JClass,
     width: jfloat,
     stretch: jfloat,
+    number_scale: jfloat,
     long_press_ms: jlong,
     space_in_middle: jboolean,
+    left_key: JString,
     edit_keys: jboolean,
     without_number_row: jboolean,
 ) -> jlong {
-    let mut letters = if space_in_middle != 0 { space_middle() } else { space_bottom() };
+    let left_key: String = env.get_string(&left_key).map(Into::into).unwrap_or_default();
+    let mut letters = if space_in_middle != 0 { space_middle_with(&left_key) } else { space_bottom() };
     if without_number_row != 0 {
         letters = without_numbers(letters);
     } else if edit_keys != 0 {
         letters = with_shift_and_backspace(letters);
     }
+    let letters = with_number_scale(letters, number_scale);
     Box::into_raw(Box::new(Keyboard::new(letters, width, stretch, long_press_ms as u64))) as jlong
 }
 
@@ -161,7 +165,8 @@ pub extern "system" fn Java_io_github_tieo_hexkeys_Core_touchMove(
 }
 
 /// What lifting the finger means, as `[kind, text]` with kind one of
-/// `commit`, `backspace`, `enter`, `redraw`, `nothing`, `swipe`, or
+/// `commit`, `backspace`, `enter`, `enter_action`, `emoji`, `language`
+/// (text 1 or -1), `cursor` (text "dx dy"), `redraw`, `nothing`, `swipe`, or
 /// `delete` with text "pieces words started", the last two 0 or 1.
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_tieo_hexkeys_Core_touchUp(
@@ -220,11 +225,15 @@ fn action(env: &mut JNIEnv, action: Action) -> jobjectArray {
         Action::Enter => ("enter", String::new()),
         Action::EnterAction => ("enter_action", String::new()),
         Action::Emoji => ("emoji", String::new()),
+        Action::Clipboard => ("clipboard", String::new()),
+        Action::Voice => ("voice", String::new()),
+        Action::Hide => ("hide", String::new()),
         Action::Cursor { dx, dy } => ("cursor", format!("{dx} {dy}")),
         Action::Language { forward } => ("language", if forward { "1" } else { "-1" }.to_owned()),
         Action::Redraw => ("redraw", String::new()),
         Action::Nothing => ("nothing", String::new()),
         Action::Swipe => ("swipe", String::new()),
+        Action::DeleteAll { started } => ("delete_all", (started as u8).to_string()),
         Action::Delete { pieces, words, started } => {
             ("delete", format!("{pieces} {} {}", words as u8, started as u8))
         }
@@ -616,15 +625,19 @@ pub extern "system" fn Java_io_github_tieo_hexkeys_Core_decodeSwipe(
 }
 
 /// Sets up the gestures: delete swipes from the left edge instead of the
-/// right.
+/// right, and the percent of the width in which a delete swipe deletes
+/// everything.
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_tieo_hexkeys_Core_configure(
     _env: JNIEnv,
     _class: JClass,
     handle: jlong,
     delete_from_left: jboolean,
+    delete_all_percent: jint,
 ) {
-    keyboard(handle).gestures.delete_from_left = delete_from_left != 0;
+    let gestures = &mut keyboard(handle).gestures;
+    gestures.delete_from_left = delete_from_left != 0;
+    gestures.delete_all_percent = u32::try_from(delete_all_percent).unwrap_or(hexkeys::DELETE_ALL_OFF);
 }
 
 /// The accented letters of the lexicon's languages by plain letter, as

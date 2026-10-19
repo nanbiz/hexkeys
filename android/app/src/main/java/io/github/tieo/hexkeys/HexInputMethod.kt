@@ -77,7 +77,8 @@ class HexInputMethod : InputMethodService() {
                 emojiSearch = null
             }
             Theme.KEY -> keyboard?.theme = Theme.current(this)
-            KeyboardView.LAYOUT, KeyboardView.DELETE_FROM_LEFT, KeyboardView.EDIT_KEYS ->
+            KeyboardView.LAYOUT, KeyboardView.LEFT_KEY, KeyboardView.DELETE_FROM_LEFT, KeyboardView.DELETE_ALL, KeyboardView.EDIT_KEYS,
+            KeyboardView.SIZE_ALL, KeyboardView.SIZE_KEYS, KeyboardView.SIZE_NUMBERS, KeyboardView.NUMBER_ROW ->
                 keyboard?.requestLayout()
             Dictionaries.LEARNED_RESET -> {
                 Core.words.execute { Core.lexiconForget(lexicon) }
@@ -220,6 +221,9 @@ class HexInputMethod : InputMethodService() {
      */
     private fun slide(target: TextTarget, text: String, undo: Correction?, justSwiped: String?) {
         val (slid, words, started) = text.split(" ").map { it.toInt() }
+        if (started == 1) everything.clear()
+        // Back out of the reach for deleting everything: all of it comes back first.
+        putBackEverything(target)
         var before = target.textBefore()
         if (started == 1) {
             deleted.clear()
@@ -287,6 +291,58 @@ class HexInputMethod : InputMethodService() {
         keyboard?.deletedText = undone + deleted.reversed().joinToString("")
     }
 
+    /**
+     * What a delete slide that reached far enough took at once, a read of the field's
+     * text at a time, the nearest the cursor first; empty while it has not.
+     */
+    private val everything = ArrayDeque<String>()
+
+    /** Deletes all the text before the cursor, and the selection with it, keeping it to put back. */
+    private fun deleteEverything(target: TextTarget, started: Boolean) {
+        // A slide that reaches this far in its first move starts here, with nothing of an earlier one left.
+        if (started) {
+            everything.clear()
+            deleted.clear()
+            swipedBeforeDelete = null
+            slideUndo = null
+            slideUndone = false
+            slidePeak = 0
+            slidePeakDeleted = 0
+        }
+        if (everything.isNotEmpty()) return
+        target.beginBatch()
+        if (deleted.isEmpty()) {
+            val selected = target.selectedText()
+            if (selected.isNotEmpty()) {
+                target.commit("")
+                everything.addLast(selected)
+            }
+        }
+        // The copy of the text is cut short at the front: delete it and read on.
+        for (read in 0 until EVERYTHING_READS) {
+            val before = target.textBefore()
+            if (before.isEmpty()) break
+            target.deleteBefore(before.length)
+            everything.addLast(before)
+        }
+        target.endBatch()
+        // The strip shows the end of what went, which is what a slide through the text would have shown last.
+        val tail = StringBuilder()
+        for (chunk in everything) {
+            tail.insert(0, chunk)
+            if (tail.length >= EVERYTHING_SHOWN) break
+        }
+        keyboard?.deletedText = tail.toString() + deleted.reversed().joinToString("")
+    }
+
+    /** Puts back what [deleteEverything] took, the text farthest from the cursor first. */
+    private fun putBackEverything(target: TextTarget) {
+        if (everything.isEmpty()) return
+        target.beginBatch()
+        while (everything.isNotEmpty()) target.commit(everything.removeLast())
+        target.endBatch()
+    }
+
     /** The correction the delete slide under way started right after, and whether it has undone it. */
     private var slideUndo: Correction? = null
     private var slideUndone = false
@@ -307,6 +363,9 @@ class HexInputMethod : InputMethodService() {
     /** A swipe being decoded; actions arriving meanwhile wait in [waiting]. */
     private var decoding = false
     private val waiting = ArrayDeque<Pair<String, String>>()
+
+    /** Counts the fields closed, so a swipe decoded for one never lands in the next. */
+    private var fields = 0
 
     /** What a key, gesture or hold asks for, in the order they came. */
     private fun act(kind: String, text: String) {
@@ -375,6 +434,7 @@ class HexInputMethod : InputMethodService() {
             // Deleting in the query works as it does in a field.
             "backspace" -> deleteCharacter(queryText)
             "delete" -> slide(queryText, text, null, null)
+            "delete_all" -> deleteEverything(queryText, text == "1")
             "enter", "enter_action" -> {
                 closeSearch()
                 return
@@ -395,7 +455,8 @@ class HexInputMethod : InputMethodService() {
     }
 
     /** Puts in the word a swipe spelled, then whatever was typed while it was decoded. */
-    private fun swiped(words: Array<String>) {
+    private fun swiped(words: Array<String>, field: Int) {
+        if (field != fields) return
         decoding = false
         val view = keyboard
         if (view != null && words.isNotEmpty() && currentInputConnection != null) {
@@ -435,6 +496,7 @@ class HexInputMethod : InputMethodService() {
         swiped = null
         when (kind) {
             "delete" -> slide(connection, text, undo, justSwiped)
+            "delete_all" -> deleteEverything(connection, text == "1")
             "swipe" -> {
                 val view = keyboard ?: return
                 if (!suggesting) return
@@ -442,10 +504,11 @@ class HexInputMethod : InputMethodService() {
                 val path = view.swiped()
                 val letters = view.letters
                 val before = connection.textBefore()
+                val field = fields
                 decoding = true
                 Core.words.execute {
                     val words = if (lexicon == 0L || letters == 0L) emptyArray() else Core.decodeSwipe(lexicon, letters, path, before)
-                    mainExecutor.execute { swiped(words) }
+                    mainExecutor.execute { swiped(words, field) }
                 }
             }
             "commit" -> {
@@ -505,6 +568,9 @@ class HexInputMethod : InputMethodService() {
                 it.showEmoji(!it.emojiShown)
                 readEmojiSearch()
             }
+            "clipboard" -> frame?.let { it.showClipboard(!it.clipboardShown) }
+            "voice" -> toggleVoice()
+            "hide" -> requestHideSelf(0)
             "language" -> {
                 // Guessing, then each language in turn, then guessing again.
                 val count = lexiconFiles.size
@@ -676,6 +742,10 @@ class HexInputMethod : InputMethodService() {
         voice.stop()
         // A language picked by hand holds for the field it was picked in.
         if (pinned != null) pinLanguage(null)
+        // A swipe still being decoded and the keys typed meanwhile belong to the field that closed.
+        fields += 1
+        decoding = false
+        waiting.clear()
         // Chips of an answer still being drawn belong to the field that closed.
         inlineAnswer += 1
         frame?.show(emptyList())
@@ -1005,8 +1075,8 @@ class HexInputMethod : InputMethodService() {
     private fun currentStrip() {
         val view = keyboard ?: return
         val before = editor.textBefore()
-        if (!suggesting || view.stripBefore == before) return
         val letters = view.letters
+        if (!suggesting || letters == 0L || view.stripBefore == before) return
         val strip = runCatching {
             Core.words.submit<Array<String>> { Core.strip(lexicon, letters, before) }
                 .get(STRIP_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
@@ -1084,6 +1154,10 @@ class HexInputMethod : InputMethodService() {
 
         /** The last word before the cursor with the spaces after it. */
         val WORD_AT_END = Regex("\\S*\\s*$")
+
+        /** The most reads of the field's text deleting everything makes, and how much of it the strip shows. */
+        private const val EVERYTHING_READS = 1000
+        private const val EVERYTHING_SHOWN = 200
 
         /** Text size of an autofill suggestion's subtitle, such as a login's account, in sp. */
         const val INLINE_SUBTITLE_SP = 14f

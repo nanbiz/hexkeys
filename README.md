@@ -4,6 +4,8 @@
 
 <p align="center">
   A keyboard for Android with big hexagonal keys, gestures instead of extra keys, and everything a keyboard is expected to do.
+  <br>
+  English · <a href="README.de.md">Deutsch</a>
 </p>
 
 <p align="center">
@@ -28,25 +30,57 @@ Hexagons tile a surface with no gaps, so every key can be as large as the screen
 | Gesture | What it does |
 |---|---|
 | Flick up on a letter | Types its capital |
-| Slide in from the right on the number row | Deletes as you slide, faster the further you go; rest at the far side to delete whole words |
-| Slide along the middle of the number row | Moves the cursor, one character per step |
-| Swipe across the letters | Types the word the path spells |
 | Hold a letter | Opens the accented letters your languages use, as a small honeycomb |
-| Flick up on `.` or `?` | Types `,` or `!` |
-| Flick up on enter | Runs the field's action, such as send or search |
+| Swipe across the letters | Types the word the path spells |
+| Flick up on `.` or `?` | Types `,` or `!`; hold them for more marks |
+| Tap enter | A new line in a field of several lines, otherwise the field's action |
+| Flick up on enter, or hold it | Always runs the field's action, such as send or search |
+| Tap `@#€` | Opens the symbols; `=\<` turns to the second page and `ABC` goes back |
 | Flick up on `@#€` | Opens emoji |
 | Flick sideways on space | Switches the language |
+| Hold space and move | Steers the cursor through the text, up and down too |
+| Slide in from the edge of the number row | Deletes as you slide, more the farther and the slower; slide back to put it back |
+| Slide to the set distance, when one is set | Deletes everything before the cursor; slide back out to bring it back |
+| Slide along the middle of the number row | Moves the cursor, one character per step |
+| Hold shift or backspace (the optional keys) | Locks capitals, or deletes again and again |
 
 ## Features
 
-- **Suggestions** for every typed word, with the next word predicted after a space. Autocorrect and learning new words are off by default and one switch away.
-- **47 languages** from 53 downloadable dictionaries. The keyboard guesses the language from what you write and shows it on the space bar. Vietnamese types with Telex.
+- **Suggestions** for every typed word, with the next word predicted after a space. Autocorrect fixes every mistake by default, can be limited to obvious ones or switched off; learning new words is off by default and one switch away.
+- **47 languages** from 53 downloadable dictionaries. The keyboard guesses the language from what you write and shows the languages on the space bar. Vietnamese types with Telex.
 - **Dictation** that runs on the phone with NVIDIA's Parakeet model in 25 European languages, writing each stretch of speech while you keep talking.
 - **Passwords** from your autofill service as chips in the suggestion strip, with the service's own button pinned in a fixed place.
 - **Clipboard**: what you just copied waits in the strip for a one-tap paste; clips stay an hour, or for good once pinned.
 - **Emoji** with search by name in every language you use.
-- **Themes**: Dusk, Paper, Ember, your device's colours, plain dark and plain light. The starter themes colour each letter by its QWERTZ row, so rearranged letters stay easy to find.
-- **Two layouts**: space at the bottom (the default) or space in the middle.
+- **Themes**: Dusk, Paper, Ember, seven more dark ones (Midnight, Aurora, Mocha, Forest, Abyss, Plum, Nordic), your device's colours (Android 12 and later), plain dark and plain light. The starter themes colour each letter by its QWERTZ row, so rearranged letters stay easy to find.
+- **Two layouts**: space at the bottom (the default) or space in the middle. In the middle layout the key left of space is the comma, or one of backspace, emoji, clipboard, dictation, hide keyboard or a second space.
+- **Sizes**: the whole keyboard, the letter keys and the number row scale on their own, and the number row can be left out.
+- **English and German**: the app and its help speak English, and German when switched.
+
+## Settings
+
+Everything is under the keyboard's settings, which open from the app icon or the gear in the suggestion strip. **Help** there explains the keyboard in short, in the app's language.
+
+| Setting | Choices (default) |
+|---|---|
+| App language | English (default), Deutsch |
+| Autocorrect | Off, Obvious, All (default) |
+| Learn new words | Off (default), on; Forget deletes what was learned |
+| Delete by sliding in from | Left edge, right edge (default) |
+| Slide this far to delete everything | Off (default), or 50% to 100% of the width; a shorter distance also deletes more characters on the way, 100% is Off and keeps the slide as it was, where resting at the far side deletes whole words |
+| Voice | Off (default), or On, which downloads the speech model once (670 MB) |
+| Layout | Space at the bottom (default), space in the middle |
+| Key left of space | Comma (default), backspace, emoji, clipboard, dictation, hide keyboard, second space; only in the middle layout |
+| Shift and backspace keys | Off (default), on; always there without a number row |
+| Theme | Any of the themes above (Dusk by default) |
+| Whole keyboard | 70% to 130% of the height (100%) |
+| Letter keys | 70% to 130% (100%) |
+| Number row | On (default), off; without it the digits are on the symbols and deleting by sliding and the cursor slide along the row are gone, so the shift and backspace keys are there instead; the emoji search needs it too |
+| Number row height | 50% to 150% (100%) |
+| Languages | The dictionaries to suggest in; ticking one downloads it |
+| Credits | Who made what the keyboard is built on |
+
+In landscape the suggestion strip and the number row are left out to give the app room, and shift and backspace are keys.
 
 ## Privacy
 

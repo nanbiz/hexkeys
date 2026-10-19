@@ -21,7 +21,7 @@ import java.util.concurrent.Executors
  * one, with a search over all of them. Checking a language downloads its
  * dictionary, unchecking removes it, and the last one stays.
  */
-class LanguagesActivity : Activity() {
+class LanguagesActivity : LocalizedActivity() {
 
     private val downloads = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
@@ -31,7 +31,7 @@ class LanguagesActivity : Activity() {
         super.onCreate(savedInstanceState)
         val column = ui.column()
         val search = EditText(this).apply {
-            hint = "Search languages"
+            hint = getString(R.string.search_languages)
             setTextColor(ui.text)
             setSingleLine()
             minHeight = ui.dp(48)
@@ -40,8 +40,8 @@ class LanguagesActivity : Activity() {
 
         val enabled = Dictionaries.enabled(this)
         val (used, others) = Dictionaries.catalog(this).partition { it.file in enabled }
-        val inUse = ui.heading("In use")
-        val more = ui.heading("More languages")
+        val inUse = ui.heading(getString(R.string.in_use))
+        val more = ui.heading(getString(R.string.more_languages))
         val usedRows = used.map { it to languageRow(it) }
         val otherRows = others.map { it to languageRow(it) }
         column.addView(inUse)
@@ -57,7 +57,7 @@ class LanguagesActivity : Activity() {
             override fun afterTextChanged(s: Editable?) {
                 val query = s.toString().trim()
                 for ((language, row) in usedRows + otherRows) {
-                    row.visibility = if (language.name.contains(query, ignoreCase = true)) View.VISIBLE else View.GONE
+                    row.visibility = if (language.matches(this@LanguagesActivity, query)) View.VISIBLE else View.GONE
                 }
                 val anyUsed = usedRows.any { it.second.visibility == View.VISIBLE }
                 inUse.visibility = if (anyUsed) View.VISIBLE else View.GONE
@@ -69,7 +69,7 @@ class LanguagesActivity : Activity() {
         })
 
         setContentView(ui.page(column))
-        title = "Languages"
+        title = getString(R.string.languages)
     }
 
     override fun onDestroy() {
@@ -86,7 +86,7 @@ class LanguagesActivity : Activity() {
             minimumHeight = ui.dp(52)
         }
         val box = CheckBox(this).apply {
-            text = language.name
+            text = language.title(this@LanguagesActivity)
             textSize = 17f
             setTextColor(ui.text)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)

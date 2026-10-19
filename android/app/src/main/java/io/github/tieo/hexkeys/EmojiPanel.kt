@@ -89,6 +89,14 @@ class EmojiPanel(
         apply(theme)
     }
 
+    /** Whether there is a number row for the search's results to take the place of. */
+    var searchable = true
+        set(value) {
+            if (field == value) return
+            field = value
+            if (rows.isNotEmpty()) buildBar()
+        }
+
     /** Follows the keyboard's theme; the same theme again changes nothing. */
     fun apply(theme: Theme) {
         if (theme == this.theme && rows.isNotEmpty()) return
@@ -103,9 +111,12 @@ class EmojiPanel(
     /** The recently used the rows were built with; the rows are built again only when they changed. */
     private var builtRecent: List<String>? = null
 
+    /** The app's language the rows' group names were written in. */
+    private var builtLanguage = ""
+
     /** Opens at the top: the recently used, or the first group when there are none. */
     fun open() {
-        if (recent() != builtRecent) buildRows()
+        if (recent() != builtRecent || AppLocale.current(context) != builtLanguage) buildRows()
         list.setSelection(0)
         marked = rows.firstOrNull()?.group ?: 0
         markBar()
@@ -121,9 +132,27 @@ class EmojiPanel(
         Dictionaries.preferences(context).edit().putString(RECENT, list.joinToString(" ")).apply()
     }
 
+    /** A group's name in the app's language, as the emoji list names it in English. */
+    private fun groupTitle(name: String): String {
+        val id = when (name) {
+            "Smileys & Emotion" -> R.string.emoji_smileys
+            "People & Body" -> R.string.emoji_people
+            "Animals & Nature" -> R.string.emoji_animals
+            "Food & Drink" -> R.string.emoji_food
+            "Travel & Places" -> R.string.emoji_travel
+            "Activities" -> R.string.emoji_activities
+            "Objects" -> R.string.emoji_objects
+            "Symbols" -> R.string.emoji_symbols
+            "Flags" -> R.string.emoji_flags
+            else -> return name
+        }
+        return AppLocale.text(context, id)
+    }
+
     private fun buildRows() {
         builtRecent = recent()
-        val all = listOf("Recently used" to builtRecent.orEmpty()) + groups
+        builtLanguage = AppLocale.current(context)
+        val all = listOf(AppLocale.text(context, R.string.emoji_recent) to builtRecent.orEmpty()) + groups.map { (name, emoji) -> groupTitle(name) to emoji }
         val built = mutableListOf<Row>()
         val at = mutableListOf<Int>()
         for ((group, entry) in all.withIndex()) {
@@ -139,13 +168,11 @@ class EmojiPanel(
     }
 
     /**
-     * The search button, then a button per group with its icon. Landscape
-     * has no search: its results take the number row's place, which the
-     * keyboard leaves out there.
+     * The search button, then a button per group with its icon. Without a
+     * number row there is no search: its results take the number row's place.
      */
     private fun buildBar() {
         bar.removeAllViews()
-        val landscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
         val search = ImageView(context).apply {
             setImageResource(R.drawable.icon_search)
             setColorFilter(theme.label)
@@ -153,7 +180,7 @@ class EmojiPanel(
             background = pill(theme.other)
             setOnClickListener { onSearch() }
         }
-        if (!landscape) bar.addView(search, LayoutParams(dp(PANEL_CONTROL * 2), ViewGroup.LayoutParams.MATCH_PARENT).apply { marginEnd = dp(PANEL_INSET / 2) })
+        if (searchable) bar.addView(search, LayoutParams(dp(PANEL_CONTROL * 2), ViewGroup.LayoutParams.MATCH_PARENT).apply { marginEnd = dp(PANEL_INSET / 2) })
         for ((group, icon) in GROUP_ICONS.withIndex()) {
             val mark = ImageView(context).apply {
                 setImageResource(icon)

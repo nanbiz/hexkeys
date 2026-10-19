@@ -190,6 +190,7 @@ class KeyboardFrame(context: Context, val keyboard: KeyboardView, val emoji: Emo
     /** Shows the emoji in place of the keys, or the keys again. */
     fun showEmoji(on: Boolean) {
         if (on) {
+            emoji.searchable = keyboard.numbersHeight > 0
             emoji.apply(keyboard.theme)
             emoji.open()
             clipboard.visibility = GONE

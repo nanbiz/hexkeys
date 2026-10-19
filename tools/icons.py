@@ -13,7 +13,7 @@ ICONS = [
     "settings", "mood", "mic", "key", "backspace", "keyboard_return", "shift", "schedule",
     "stop_circle", "timer", "error", "send", "search", "arrow_forward", "arrow_back", "check", "keyboard_tab", "close",
     "emoji_people", "pets", "restaurant", "directions_car", "sports_soccer", "lightbulb", "emoji_symbols", "flag",
-    "content_paste", "push_pin",
+    "content_paste", "push_pin", "keyboard_hide",
 ]
 OUT = pathlib.Path(__file__).resolve().parent.parent / "android/app/src/main/res/drawable"
 

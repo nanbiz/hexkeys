@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Hexkeys</string>
+    <string name="percent">%1$d %%</string>
+    <string name="off">Off</string>
+
+    <!-- Setup and the page's first cards -->
+    <string name="enable_keyboard">Enable Hexkeys</string>
+    <string name="switch_to_keyboard">Switch to Hexkeys</string>
+    <string name="try_keyboard">Try the keyboard</string>
+
+    <!-- Typing -->
+    <string name="typing">Typing</string>
+    <string name="autocorrect">Autocorrect</string>
+    <string name="autocorrect_obvious">Obvious</string>
+    <string name="autocorrect_all">All</string>
+    <string name="learn_new_words">Learn new words</string>
+    <string name="forget">Forget</string>
+
+    <!-- Gestures -->
+    <string name="gestures">Gestures</string>
+    <string name="delete_from">Delete by sliding in from</string>
+    <string name="left_edge">Left edge</string>
+    <string name="right_edge">Right edge</string>
+    <string name="delete_all">Slide this far to delete everything</string>
+    <string name="delete_all_hint">A shorter slide also deletes more characters on the way. Off keeps whole words for resting at the far side.</string>
+
+    <!-- Voice -->
+    <string name="voice">Voice</string>
+    <string name="voice_on">On  ·  %1$d MB</string>
+    <string name="allow_microphone">Allow the microphone</string>
+
+    <!-- Look -->
+    <string name="look">Look</string>
+    <string name="layout">Layout</string>
+    <string name="layout_space_bottom">Space at the bottom</string>
+    <string name="layout_space_middle">Space in the middle</string>
+    <string name="left_key">Key left of space</string>
+    <string name="left_key_comma">,</string>
+    <string name="left_key_backspace">⌫</string>
+    <string name="left_key_emoji">Emoji</string>
+    <string name="left_key_clipboard">Clipboard</string>
+    <string name="left_key_voice">Dictation</string>
+    <string name="left_key_hide">Hide keyboard</string>
+    <string name="left_key_space">Second space</string>
+    <string name="edit_keys">Shift and backspace keys</string>
+    <string name="theme">Theme</string>
+
+    <!-- Size -->
+    <string name="size">Size</string>
+    <string name="size_all">Whole keyboard</string>
+    <string name="size_keys">Letter keys</string>
+    <string name="number_row">Number row</string>
+    <string name="size_numbers">Number row height</string>
+    <string name="number_row_hint">Without the number row the digits move to the symbols, and shift and backspace become keys: deleting by sliding and moving the cursor along the row need it.</string>
+
+    <!-- App language -->
+    <string name="app_language">App language</string>
+    <string name="language_english">English</string>
+    <string name="language_german">Deutsch</string>
+
+    <!-- Navigation rows -->
+    <string name="languages">Languages</string>
+    <string name="credits">Credits</string>
+    <string name="credits_summary">Dictionaries, data and libraries</string>
+    <string name="help">Help</string>
+    <string name="help_summary">Everything the keyboard can do</string>
+
+    <!-- Themes -->
+    <string name="theme_dusk">Dusk</string>
+    <string name="theme_paper">Paper</string>
+    <string name="theme_ember">Ember</string>
+    <string name="theme_midnight">Midnight</string>
+    <string name="theme_aurora">Aurora</string>
+    <string name="theme_mocha">Mocha</string>
+    <string name="theme_forest">Forest</string>
+    <string name="theme_abyss">Abyss</string>
+    <string name="theme_plum">Plum</string>
+    <string name="theme_nordic">Nordic</string>
+    <string name="theme_device">Device colors</string>
+    <string name="theme_plain_dark">Plain dark</string>
+    <string name="theme_plain_light">Plain light</string>
+
+    <!-- Languages page -->
+    <string name="search_languages">Search languages</string>
+    <string name="in_use">In use</string>
+    <string name="more_languages">More languages</string>
+    <string name="language_hi_zz">Hinglish</string>
+    <string name="language_sr_zz">Serbian (Latin)</string>
+    <string name="language_zgh_zz">Standard Moroccan Tamazight (Latin)</string>
+
+    <!-- Credits page -->
+    <string name="credit_english_dictionary">English dictionary</string>
+    <string name="credit_context_counts">Autocorrect context counts</string>
+    <string name="credit_emoji">Emoji and their names</string>
+    <string name="credit_icons">Icons</string>
+    <string name="credit_letters">Letters typed from plain keys</string>
+    <string name="credit_speech">Speech recognition</string>
+    <string name="credit_speech_runtime">Speech model runtime</string>
+    <string name="credit_speech_model">Speech model</string>
+    <string name="credit_autofill">Autofill suggestions</string>
+    <string name="credit_rust">Rust libraries</string>
+    <string name="credit_dictionaries_in_use">Dictionaries in use</string>
+    <string name="credit_terms_unstated">terms not stated by the source</string>
+    <string name="credit_dictionary_by">aosp-dictionaries by Helium314: %1$s</string>
+
+    <!-- Emoji -->
+    <string name="emoji_recent">Recently used</string>
+    <string name="emoji_smileys">Smileys &amp; Emotion</string>
+    <string name="emoji_people">People &amp; Body</string>
+    <string name="emoji_animals">Animals &amp; Nature</string>
+    <string name="emoji_food">Food &amp; Drink</string>
+    <string name="emoji_travel">Travel &amp; Places</string>
+    <string name="emoji_activities">Activities</string>
+    <string name="emoji_objects">Objects</string>
+    <string name="emoji_symbols">Symbols</string>
+    <string name="emoji_flags">Flags</string>
+
+    <!-- Help page -->
+    <string name="help_title">Help</string>
+
+    <string name="help_typing_title">Typing</string>
+    <string name="help_typing_body">• Tap a key to type it. Flick up on a letter for its capital.\n• Hold a letter for its accented forms.\n• Swipe across the letters to type a word in one stroke; the strip offers other words it could be.\n• The strip suggests words while you type and the next word after a space. Tap one to use it.\n• Autocorrect fixes what you typed when you type a space or a mark: off, obvious fixes only, or all. Learn new words keeps words you type that no dictionary knows.\n• Hold shift or backspace (the optional keys) to lock capitals or to repeat deleting.</string>
+
+    <string name="help_keys_title">Marks, enter and symbols</string>
+    <string name="help_keys_body">• Flick up on . or ? for , or !. Hold them for more marks.\n• Enter starts a new line in a field of several lines and otherwise does the field\'s own action, such as send or search. Flick up on it or hold it to always do the action.\n• The @#€ key opens the symbols; =\\&lt; turns to the second page and ABC goes back to the letters.\n• Flick up on @#€ to open the emoji.</string>
+
+    <string name="help_space_title">Space, languages and the cursor</string>
+    <string name="help_space_body">• The space key shows the languages in use. The one being written is brightest, and it is faint while it is only a guess from what you wrote.\n• Flick sideways on space to pick a language by hand: each of your languages in turn, then back to guessing. It holds for the field you are in.\n• Hold space and move your finger to steer the cursor through the text, up and down too.\n• In the layout with space in the middle, the key left of space is the comma, or what you choose under Look: backspace, emoji, clipboard, dictation, hide the keyboard or a second space.</string>
+
+    <string name="help_delete_title">Deleting</string>
+    <string name="help_delete_body">• Slide in from the edge of the number row to delete as you go: the farther and the slower, the more it takes. Slide back to put the text back.\n• Slide as far as set under Gestures (off by default) and everything before the cursor goes at once. Slide back out to bring it back. Set it to Off to keep the slide as it was, where resting at the far side deletes whole words.\n• A short quick flick across the number row deletes one character.\n• Slide along the middle of the number row, or hold it, to move the cursor.\n• Choose the edge you slide in from under Gestures.</string>
+
+    <string name="help_look_title">Layout, size and themes</string>
+    <string name="help_look_body">• Two layouts: space at the bottom, which is the default, or in the middle.\n• Shift and backspace keys can be added at the ends of the third row.\n• Under Size, scale the whole keyboard, the letter keys and the number row on their own, or leave the number row out. Without it the digits are on the symbols and the shift and backspace keys are there.\n• Pick a theme under Look; the starter themes colour each letter by its QWERTZ row so moved letters stay easy to find.\n• In landscape the strip and the number row are left out to give the app room; the shift and backspace keys take over, and the key left of space can open the clipboard or dictation.\n• App language switches the app, including this help, between English and German.</string>
+
+    <string name="help_more_title">Emoji, clipboard, passwords and dictation</string>
+    <string name="help_more_body">• Emoji: flick up on @#€. Search them by name in any language you use.\n• Clipboard: what you just copied waits in the strip for a one-tap paste. The button at the strip\'s left end opens the clipboard, where clips stay an hour, or for good once pinned.\n• Passwords: your autofill service\'s entries appear as chips in the strip.\n• Dictation: the microphone in the strip types what you say and runs on the phone. Switch it on under Voice, which downloads the speech model once; Off deletes it again.\n• Settings: the gear at the strip\'s left end.</string>
+
+    <string name="help_languages_title">Languages</string>
+    <string name="help_languages_body">• Under Languages, tick the languages you write in. Each downloads its dictionary; unticking removes it, and one always stays.\n• The keyboard guesses the language from the last words you wrote, and uses the dictionaries of all ticked languages.</string>
+
+    <string name="help_privacy_title">Privacy</string>
+    <string name="help_privacy_body">hexkeys has no account, no ads and no trackers. It uses the network only to download the dictionaries, word statistics and speech model you ask for; everything you type and say stays on the phone.</string>
+</resources>

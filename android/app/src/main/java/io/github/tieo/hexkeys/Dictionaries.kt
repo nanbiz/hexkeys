@@ -5,9 +5,31 @@ import android.content.SharedPreferences
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 
 /** One downloadable dictionary from the catalog in the assets. */
-data class Language(val name: String, val locale: String, val file: String, val license: String)
+data class Language(val name: String, val locale: String, val file: String, val license: String) {
+    /**
+     * The language's name in the app's language: the catalog's English one, or, where the app
+     * speaks another, the one the system knows it by when it knows it at all.
+     */
+    fun title(context: Context): String {
+        val app = AppLocale.locale(context)
+        if (app.language == "en") return name
+        when (locale) {
+            "hi_zz" -> return AppLocale.text(context, R.string.language_hi_zz)
+            "sr_zz" -> return AppLocale.text(context, R.string.language_sr_zz)
+            "zgh_zz" -> return AppLocale.text(context, R.string.language_zgh_zz)
+        }
+        val known = Locale.forLanguageTag(locale.replace('_', '-'))
+        val shown = known.getDisplayName(app)
+        return if (shown.isBlank() || shown.equals(known.toLanguageTag(), ignoreCase = true) || shown.equals(locale, ignoreCase = true)) name else shown
+    }
+
+    /** Whether `query` is in the name, as the catalog has it or as the app shows it. */
+    fun matches(context: Context, query: String) =
+        name.contains(query, ignoreCase = true) || title(context).contains(query, ignoreCase = true)
+}
 
 /**
  * Which dictionaries the keyboard suggests from and where they live: the

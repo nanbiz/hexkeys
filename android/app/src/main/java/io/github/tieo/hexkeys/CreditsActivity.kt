@@ -13,34 +13,34 @@ import android.widget.TextView
  * the languages in use among them. Tapping a part shows its license's text,
  * kept in the assets' licenses folder by SPDX identifier.
  */
-class CreditsActivity : Activity() {
+class CreditsActivity : LocalizedActivity() {
 
     private val ui by lazy { Ui(this) }
 
     /** A part of the keyboard: what it is, who made it, and its license's SPDX identifiers. */
     private class Part(val name: String, val by: String, val licenses: List<String>)
 
-    private val parts = listOf(
-        Part("English dictionary", "Android Open Source Project", listOf("Apache-2.0")),
+    private val parts by lazy { listOf(
+        Part(getString(R.string.credit_english_dictionary), "Android Open Source Project", listOf("Apache-2.0")),
         Part(
-            "Autocorrect context counts",
+            getString(R.string.credit_context_counts),
             "Leipzig Corpora Collection: D. Goldhahn, T. Eckart, U. Quasthoff, Building Large Monolingual " +
                 "Dictionaries at the Leipzig Corpora Collection: From 100 to 200 Languages, LREC 2012",
             listOf("CC-BY-4.0"),
         ),
-        Part("Emoji and their names", "Unicode emoji data and Unicode CLDR", listOf("Unicode-3.0")),
-        Part("Icons", "Material Symbols by Google", listOf("Apache-2.0")),
-        Part("Letters typed from plain keys", "anyascii by Hunter WB", listOf("ISC")),
-        Part("Speech recognition", "sherpa-onnx by Next-gen Kaldi", listOf("Apache-2.0")),
-        Part("Speech model runtime", "ONNX Runtime by Microsoft", listOf("MIT")),
-        Part("Speech model", "Parakeet TDT 0.6B v3 by NVIDIA", listOf("CC-BY-4.0")),
-        Part("Autofill suggestions", "AndroidX Autofill", listOf("Apache-2.0")),
+        Part(getString(R.string.credit_emoji), "Unicode emoji data and Unicode CLDR", listOf("Unicode-3.0")),
+        Part(getString(R.string.credit_icons), "Material Symbols by Google", listOf("Apache-2.0")),
+        Part(getString(R.string.credit_letters), "anyascii by Hunter WB", listOf("ISC")),
+        Part(getString(R.string.credit_speech), "sherpa-onnx by Next-gen Kaldi", listOf("Apache-2.0")),
+        Part(getString(R.string.credit_speech_runtime), "ONNX Runtime by Microsoft", listOf("MIT")),
+        Part(getString(R.string.credit_speech_model), "Parakeet TDT 0.6B v3 by NVIDIA", listOf("CC-BY-4.0")),
+        Part(getString(R.string.credit_autofill), "AndroidX Autofill", listOf("Apache-2.0")),
         Part(
-            "Rust libraries",
+            getString(R.string.credit_rust),
             "jni, jni-sys, cesu8, combine, bytes, memchr, log, thiserror, cfg-if, unicode-normalization, tinyvec",
             listOf("MIT", "Apache-2.0", "Unicode-3.0", "Zlib", "Unlicense"),
         ),
-    )
+    ) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,14 +51,14 @@ class CreditsActivity : Activity() {
         val enabled = Dictionaries.enabled(this)
         val languages = Dictionaries.catalog(this).filter { it.file in enabled && it.file != Dictionaries.BUILT_IN }
         if (languages.isNotEmpty()) {
-            column.addView(ui.heading("Dictionaries in use"))
+            column.addView(ui.heading(getString(R.string.credit_dictionaries_in_use)))
             column.addView(ui.card(*languages.map { language ->
-                val terms = language.license.takeIf { it.isNotBlank() && it != "source" } ?: "terms not stated by the source"
-                row(language.name, "aosp-dictionaries by Helium314: $terms", emptyList())
+                val terms = language.license.takeIf { it.isNotBlank() && it != "source" } ?: getString(R.string.credit_terms_unstated)
+                row(language.title(this), getString(R.string.credit_dictionary_by, terms), emptyList())
             }.toTypedArray()))
         }
         setContentView(ui.page(column))
-        title = "Credits"
+        title = getString(R.string.credits)
     }
 
     /** A part's name, its maker and its licenses; tapping it shows the licenses' texts. */

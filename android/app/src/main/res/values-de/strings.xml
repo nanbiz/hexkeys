@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="percent">%1$d %%</string>
+    <string name="off">Aus</string>
+
+    <!-- Setup and the page's first cards -->
+    <string name="enable_keyboard">Hexkeys aktivieren</string>
+    <string name="switch_to_keyboard">Zu Hexkeys wechseln</string>
+    <string name="try_keyboard">Tastatur ausprobieren</string>
+
+    <!-- Typing -->
+    <string name="typing">Tippen</string>
+    <string name="autocorrect">Autokorrektur</string>
+    <string name="autocorrect_obvious">Eindeutige</string>
+    <string name="autocorrect_all">Alle</string>
+    <string name="learn_new_words">Neue Wörter lernen</string>
+    <string name="forget">Vergessen</string>
+
+    <!-- Gestures -->
+    <string name="gestures">Gesten</string>
+    <string name="delete_from">Löschen durch Ziehen von</string>
+    <string name="left_edge">Linker Rand</string>
+    <string name="right_edge">Rechter Rand</string>
+    <string name="delete_all">So weit ziehen, um alles zu löschen</string>
+    <string name="delete_all_hint">Ein kürzeres Ziehen löscht unterwegs ebenfalls mehr Zeichen. Aus lässt ganze Wörter stehen, wenn du auf der anderen Seite verweilst.</string>
+
+    <!-- Voice -->
+    <string name="voice">Spracheingabe</string>
+    <string name="voice_on">An  ·  %1$d MB</string>
+    <string name="allow_microphone">Mikrofon erlauben</string>
+
+    <!-- Look -->
+    <string name="look">Aussehen</string>
+    <string name="layout">Layout</string>
+    <string name="layout_space_bottom">Leertaste unten</string>
+    <string name="layout_space_middle">Leertaste in der Mitte</string>
+    <string name="left_key">Taste links der Leertaste</string>
+    <string name="left_key_comma">,</string>
+    <string name="left_key_backspace">⌫</string>
+    <string name="left_key_emoji">Emoji</string>
+    <string name="left_key_clipboard">Ablage</string>
+    <string name="left_key_voice">Diktat</string>
+    <string name="left_key_hide">Tastatur ausblenden</string>
+    <string name="left_key_space">Zweite Leertaste</string>
+    <string name="edit_keys">Umschalt- und Rücktaste</string>
+    <string name="theme">Design</string>
+
+    <!-- Size -->
+    <string name="size">Größe</string>
+    <string name="size_all">Ganze Tastatur</string>
+    <string name="size_keys">Buchstabentasten</string>
+    <string name="number_row">Zahlenreihe</string>
+    <string name="size_numbers">Höhe der Zahlenreihe</string>
+    <string name="number_row_hint">Ohne Zahlenreihe wandern die Ziffern zu den Symbolen, und Umschalt- und Rücktaste werden zu Tasten: Löschen durch Ziehen und Cursor-Bewegen entlang der Reihe brauchen sie.</string>
+
+    <!-- App language -->
+    <string name="app_language">App-Sprache</string>
+    <string name="language_english">English</string>
+    <string name="language_german">Deutsch</string>
+
+    <!-- Navigation rows -->
+    <string name="languages">Sprachen</string>
+    <string name="credits">Danksagungen</string>
+    <string name="credits_summary">Wörterbücher, Daten und Bibliotheken</string>
+    <string name="help">Hilfe</string>
+    <string name="help_summary">Alles, was die Tastatur kann</string>
+
+    <!-- Themes -->
+    <string name="theme_dusk">Dämmerung</string>
+    <string name="theme_paper">Papier</string>
+    <string name="theme_ember">Glut</string>
+    <string name="theme_midnight">Mitternacht</string>
+    <string name="theme_aurora">Aurora</string>
+    <string name="theme_mocha">Mokka</string>
+    <string name="theme_forest">Wald</string>
+    <string name="theme_abyss">Abgrund</string>
+    <string name="theme_plum">Pflaume</string>
+    <string name="theme_nordic">Nordisch</string>
+    <string name="theme_device">Gerätefarben</string>
+    <string name="theme_plain_dark">Schlicht dunkel</string>
+    <string name="theme_plain_light">Schlicht hell</string>
+
+    <!-- Languages page -->
+    <string name="search_languages">Sprachen suchen</string>
+    <string name="in_use">In Benutzung</string>
+    <string name="more_languages">Weitere Sprachen</string>
+    <string name="language_hi_zz">Hinglisch</string>
+    <string name="language_sr_zz">Serbisch (Latein)</string>
+    <string name="language_zgh_zz">Standard-Marokkanisches Tamazight (Latein)</string>
+
+    <!-- Credits page -->
+    <string name="credit_english_dictionary">Englisches Wörterbuch</string>
+    <string name="credit_context_counts">Kontextzählungen für die Autokorrektur</string>
+    <string name="credit_emoji">Emoji und ihre Namen</string>
+    <string name="credit_icons">Symbole</string>
+    <string name="credit_letters">Buchstaben, die über einfache Tasten getippt werden</string>
+    <string name="credit_speech">Spracherkennung</string>
+    <string name="credit_speech_runtime">Laufzeit des Sprachmodells</string>
+    <string name="credit_speech_model">Sprachmodell</string>
+    <string name="credit_autofill">Autofill-Vorschläge</string>
+    <string name="credit_rust">Rust-Bibliotheken</string>
+    <string name="credit_dictionaries_in_use">Verwendete Wörterbücher</string>
+    <string name="credit_terms_unstated">Bedingungen von der Quelle nicht angegeben</string>
+    <string name="credit_dictionary_by">aosp-dictionaries von Helium314: %1$s</string>
+
+    <!-- Emoji -->
+    <string name="emoji_recent">Zuletzt verwendet</string>
+    <string name="emoji_smileys">Smileys &amp; Emotionen</string>
+    <string name="emoji_people">Personen &amp; Körper</string>
+    <string name="emoji_animals">Tiere &amp; Natur</string>
+    <string name="emoji_food">Essen &amp; Trinken</string>
+    <string name="emoji_travel">Reisen &amp; Orte</string>
+    <string name="emoji_activities">Aktivitäten</string>
+    <string name="emoji_objects">Objekte</string>
+    <string name="emoji_symbols">Symbole</string>
+    <string name="emoji_flags">Flaggen</string>
+
+    <!-- Help page -->
+    <string name="help_title">Hilfe</string>
+
+    <string name="help_typing_title">Tippen</string>
+    <string name="help_typing_body">• Eine Taste antippen, um sie zu tippen. Auf einem Buchstaben nach oben wischen für den Großbuchstaben.\n• Einen Buchstaben gedrückt halten für die Formen mit Akzent.\n• Über die Buchstaben wischen, um ein Wort in einem Zug zu tippen; die Vorschlagsleiste bietet andere mögliche Wörter an.\n• Die Vorschlagsleiste schlägt beim Tippen Wörter vor und nach einem Leerzeichen das nächste Wort. Antippen, um es zu übernehmen.\n• Die Autokorrektur verbessert das Getippte, wenn du ein Leerzeichen oder ein Satzzeichen tippst: aus, nur eindeutige Fälle oder alle. Neue Wörter lernen merkt sich getippte Wörter, die kein Wörterbuch kennt.\n• Umschalt- oder Rücktaste (die optionalen Tasten) gedrückt halten, um Großbuchstaben zu sperren oder wiederholt zu löschen.</string>
+
+    <string name="help_keys_title">Satzzeichen, Enter und Symbole</string>
+    <string name="help_keys_body">• Auf . oder ? nach oben wischen für , oder !. Gedrückt halten für weitere Zeichen.\n• Enter beginnt in einem mehrzeiligen Feld eine neue Zeile und führt sonst die Aktion des Felds aus, etwa Senden oder Suchen. Nach oben wischen oder gedrückt halten, um immer die Aktion auszuführen.\n• Die Taste @#€ öffnet die Symbole; =\\&lt; wechselt zur zweiten Seite und ABC geht zurück zu den Buchstaben.\n• Auf @#€ nach oben wischen, um die Emoji zu öffnen.</string>
+
+    <string name="help_space_title">Leertaste, Sprachen und Cursor</string>
+    <string name="help_space_body">• Die Leertaste zeigt die verwendeten Sprachen. Die gerade geschriebene ist am hellsten und blass, solange sie nur aus dem Geschriebenen erraten ist.\n• Auf der Leertaste zur Seite wischen, um eine Sprache von Hand zu wählen: nacheinander jede deiner Sprachen, dann zurück zum Erraten. Das gilt für das aktuelle Feld.\n• Die Leertaste gedrückt halten und den Finger bewegen, um den Cursor durch den Text zu lenken, auch nach oben und unten.\n• Im Layout mit der Leertaste in der Mitte ist die Taste links davon das Komma oder das, was du unter Aussehen wählst: Rücktaste, Emoji, Zwischenablage, Diktat, Tastatur ausblenden oder eine zweite Leertaste.</string>
+
+    <string name="help_delete_title">Löschen</string>
+    <string name="help_delete_body">• Vom Rand der Zahlenreihe hineinziehen, um im Vorbeiziehen zu löschen: je weiter und langsamer, desto mehr wird gelöscht. Zurückziehen, um den Text wiederherzustellen.\n• So weit ziehen wie unter Gesten eingestellt (standardmäßig aus), und alles vor dem Cursor wird auf einmal gelöscht. Zurückziehen, um es wiederzuholen. Auf Aus stellen, damit das Ziehen wie früher funktioniert, wobei Verweilen auf der anderen Seite ganze Wörter löscht.\n• Ein kurzes schnelles Wischen über die Zahlenreihe löscht ein Zeichen.\n• In der Mitte der Zahlenreihe ziehen oder sie gedrückt halten, um den Cursor zu bewegen.\n• Den Rand, von dem aus du ziehst, wählst du unter Gesten.</string>
+
+    <string name="help_look_title">Layout, Größe und Designs</string>
+    <string name="help_look_body">• Zwei Layouts: Leertaste unten, was die Voreinstellung ist, oder in der Mitte.\n• Umschalt- und Rücktaste können an den Enden der dritten Reihe hinzugefügt werden.\n• Unter Größe lassen sich die ganze Tastatur, die Buchstabentasten und die Zahlenreihe einzeln skalieren, oder die Zahlenreihe entfällt. Ohne sie liegen die Ziffern bei den Symbolen, und die Umschalt- und Rücktaste sind vorhanden.\n• Ein Design wählst du unter Aussehen; die Start-Designs färben jeden Buchstaben nach seiner QWERTZ-Reihe, damit verschobene Buchstaben leicht zu finden bleiben.\n• Im Querformat entfallen die Vorschlagsleiste und die Zahlenreihe, damit die App Platz hat; die Umschalt- und Rücktaste übernehmen, und die Taste links der Leertaste kann die Zwischenablage oder das Diktat öffnen.\n• App-Sprache stellt die App, auch diese Hilfe, zwischen Englisch und Deutsch um.</string>
+
+    <string name="help_more_title">Emoji, Zwischenablage, Passwörter und Diktat</string>
+    <string name="help_more_body">• Emoji: auf @#€ nach oben wischen. Nach Namen suchen, in jeder Sprache, die du verwendest.\n• Zwischenablage: Das gerade Kopierte wartet in der Vorschlagsleiste auf ein Einfügen mit einem Tipp. Die Schaltfläche am linken Ende der Leiste öffnet die Zwischenablage, wo Einträge eine Stunde bleiben, oder dauerhaft, wenn sie angeheftet sind.\n• Passwörter: Die Einträge deines Autofill-Dienstes erscheinen als Chips in der Vorschlagsleiste.\n• Diktat: Das Mikrofon in der Vorschlagsleiste tippt, was du sagst, und läuft auf dem Telefon. Unter Sprache einschalten, was das Sprachmodell einmalig herunterlädt; Aus löscht es wieder.\n• Einstellungen: das Zahnrad am linken Ende der Vorschlagsleiste.</string>
+
+    <string name="help_languages_title">Sprachen</string>
+    <string name="help_languages_body">• Unter Sprachen die Sprachen ankreuzen, in denen du schreibst. Jede lädt ihr Wörterbuch herunter; Abwählen entfernt es, und eine bleibt immer.\n• Die Tastatur errät die Sprache aus den zuletzt geschriebenen Wörtern und nutzt die Wörterbücher aller angekreuzten Sprachen.</string>
+
+    <string name="help_privacy_title">Datenschutz</string>
+    <string name="help_privacy_body">hexkeys hat kein Konto, keine Werbung und keine Tracker. Das Netzwerk wird nur genutzt, um die Wörterbücher, Wortstatistiken und das Sprachmodell herunterzuladen, die du anforderst; alles, was du tippst und sagst, bleibt auf dem Telefon.</string>
+</resources>
