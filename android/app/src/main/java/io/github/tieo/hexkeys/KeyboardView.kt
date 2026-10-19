@@ -454,7 +454,10 @@ class KeyboardView(
             Core.setStrip(handle, stripHeight.toFloat())
             loadOutlines()
         }
-        Core.configure(handle, preferences.getBoolean(DELETE_FROM_LEFT, false), preferences.getInt(DELETE_ALL, DELETE_ALL_DEFAULT))
+        Core.configure(
+            handle, preferences.getBoolean(DELETE_FROM_LEFT, false),
+            preferences.getInt(DELETE_PRECISE, DELETE_PRECISE_DEFAULT), preferences.getInt(DELETE_ALL, DELETE_ALL_DEFAULT),
+        )
         setMeasuredDimension(width, keysTop + Core.height(handle).toInt() + navigationBar)
     }
 
@@ -619,16 +622,30 @@ class KeyboardView(
                 drawLabel(canvas, Core.popupLabel(handle, index), Core.popupLabelPosition(handle, index), cellWidth)
             }
         }
-        // A delete slide washes the keys it has crossed, from the edge to the finger.
+        // A delete slide shows its zones faintly and washes the keys it has crossed, from
+        // the edge to the finger, in the colour of the zone the finger is in.
         val deleting = Core.deleting(handle)
         if (deleting.size == 3) {
             val fromLeft = Dictionaries.preferences(context).getBoolean(DELETE_FROM_LEFT, false)
-            val edge = if (fromLeft) 0f else width.toFloat()
-            // On the far side the wash snaps across the whole keyboard: whole words go, ever faster.
-            val far = deleting[2] == 1f
-            val reach = if (far) width - edge else deleting[1]
-            deletePaint.color = if (far) DELETE_FAR_COLOR else DELETE_COLOR
-            canvas.drawRect(minOf(edge, reach), 0f, maxOf(edge, reach), Core.height(handle), deletePaint)
+            fun at(fromEdge: Float) = if (fromLeft) fromEdge else width - fromEdge
+            val bottom = Core.height(handle)
+            val (precise, all) = Core.deleteBorders(handle).let { it[0] to it[1] }
+            val starts = floatArrayOf(0f, precise, all, width.toFloat())
+            for (zone in 0..2) {
+                if (starts[zone] >= starts[zone + 1]) continue
+                deletePaint.color = DELETE_ZONE_COLORS[zone] and 0x00FFFFFF or (0x18 shl 24)
+                canvas.drawRect(minOf(at(starts[zone]), at(starts[zone + 1])), 0f, maxOf(at(starts[zone]), at(starts[zone + 1])), bottom, deletePaint)
+            }
+            // The wash runs from the edge to the finger, each zone it crossed in its colour;
+            // in the everything zone it snaps across the whole keyboard: all of it goes.
+            val everything = deleting[2].toInt() == 2
+            val reached = if (everything) width.toFloat() else if (fromLeft) deleting[1] else width - deleting[1]
+            for (zone in 0..2) {
+                val end = if (everything) starts[zone + 1] else minOf(starts[zone + 1], reached)
+                if (starts[zone] >= end) continue
+                deletePaint.color = DELETE_ZONE_COLORS[if (everything) 2 else zone]
+                canvas.drawRect(minOf(at(starts[zone]), at(end)), 0f, maxOf(at(starts[zone]), at(end)), bottom, deletePaint)
+            }
         }
         // Moving the cursor fades the labels; the bar, which has none, takes the accent colour instead.
         if (Core.movingCursor(handle) && barProgress > 0f) {
@@ -1215,8 +1232,6 @@ class KeyboardView(
         private val INK_CENTRED = setOf(".", ",", ";", ":", "'", "\"", "…", "!", "?", "¡", "¿")
 
         /** The wash over keys a delete slide has crossed, and the colour of the text it took. */
-        private const val DELETE_COLOR = 0x40E5484D
-        private const val DELETE_FAR_COLOR = 0x70E5484D
         private const val DELETE_TEXT = 0xFFFF6B6B.toInt()
 
         /** How round the keys' corners are drawn, in key widths. */
@@ -1259,14 +1274,22 @@ class KeyboardView(
         const val DELETE_FROM_LEFT = "delete_from_left"
 
         /**
-         * Preference: how far a delete slide reaches to delete everything, in percent of the
-         * width from the edge it comes in from; [DELETE_ALL_OFF] for never. The same numbers
-         * as the core's `DELETE_ALL_PERCENT`, `DELETE_ALL_LEAST` and `DELETE_ALL_OFF`.
+         * Preferences: where a delete slide's growing zone starts, after the precise one,
+         * and where its everything zone starts, in percent of the width from the edge it
+         * comes in from; [DELETE_ALL_OFF] for no everything zone. The same numbers as the
+         * core's `DELETE_PRECISE_PERCENT`, `DELETE_PRECISE_LEAST`, `DELETE_ALL_PERCENT`,
+         * `DELETE_GROWING_LEAST` and `DELETE_ALL_OFF`.
          */
+        const val DELETE_PRECISE = "delete_precise_percent"
+        const val DELETE_PRECISE_DEFAULT = 45
+        const val DELETE_PRECISE_LEAST = 40
         const val DELETE_ALL = "delete_all_percent"
-        const val DELETE_ALL_DEFAULT = 80
-        const val DELETE_ALL_LEAST = 50
+        const val DELETE_ALL_DEFAULT = 90
+        const val DELETE_GROWING_LEAST = 10
         const val DELETE_ALL_OFF = 100
+
+        /** The zones' colours, precise, growing and everything: amber, orange and red, ever stronger. */
+        val DELETE_ZONE_COLORS = intArrayOf(0x50F5A524, 0x60F0703A, 0x80E5484D.toInt())
 
         /**
          * Preferences for how big the keyboard is, in percent: all of it, the letter keys on

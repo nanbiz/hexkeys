@@ -86,20 +86,25 @@ class SettingsActivity : LocalizedActivity() {
         ))
 
         column.addView(ui.heading(getString(R.string.gestures)))
+        val zones = DeleteZones(this, ui)
         column.addView(ui.card(
             ui.label(getString(R.string.delete_from)),
             ui.segmented(
                 listOf("left" to getString(R.string.left_edge), "right" to getString(R.string.right_edge)),
                 if (ui.preferences.getBoolean(KeyboardView.DELETE_FROM_LEFT, false)) "left" else "right",
-            ) { id -> ui.preferences.edit().putBoolean(KeyboardView.DELETE_FROM_LEFT, id == "left").apply() },
-            ui.slider(
-                getString(R.string.delete_all),
-                KeyboardView.DELETE_ALL,
-                range = KeyboardView.DELETE_ALL_LEAST..KeyboardView.DELETE_ALL_OFF,
-                default = KeyboardView.DELETE_ALL_DEFAULT,
-                describe = { if (it == KeyboardView.DELETE_ALL_OFF) getString(R.string.off) else getString(R.string.percent, it) },
-                info = getString(R.string.delete_all_hint),
-            ),
+            ) { id ->
+                ui.preferences.edit().putBoolean(KeyboardView.DELETE_FROM_LEFT, id == "left").apply()
+                zones.fromLeft = id == "left"
+            },
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                val label = ui.label(getString(R.string.delete_zones))
+                setPadding(0, label.paddingTop, 0, label.paddingBottom)
+                addView(label.apply { setPadding(0, 0, 0, 0) })
+                addView(ui.info(getString(R.string.delete_zones_info)))
+            },
+            zones,
         ))
 
         column.addView(ui.heading(getString(R.string.voice)))
@@ -691,6 +696,113 @@ class Ui(private val activity: Activity) {
  * A strip of the keyboard in a theme's colours: one hexagon per QWERTZ row
  * colour and one in the colour of the other keys, on the theme's background.
  */
+/**
+ * The number row as a delete slide crosses it, from the edge it comes in
+ * from: the precise, growing and everything zones in the colours the
+ * keyboard shows them in while sliding, with their two borders to drag.
+ * Dragging the second border to the far end leaves out the everything zone.
+ */
+private class DeleteZones(context: Context, private val ui: Ui) : View(context) {
+    private val preferences = ui.preferences
+    private var precise = preferences.getInt(KeyboardView.DELETE_PRECISE, KeyboardView.DELETE_PRECISE_DEFAULT)
+    private var all = preferences.getInt(KeyboardView.DELETE_ALL, KeyboardView.DELETE_ALL_DEFAULT)
+    private val names = listOf(R.string.delete_zone_precise, R.string.delete_zone_growing, R.string.delete_zone_all).map { context.getString(it) }
+    private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ui.text
+        textAlign = Paint.Align.CENTER
+        textSize = ui.dp(14).toFloat()
+    }
+    private val handleWidth = ui.dp(6).toFloat()
+    private val corner = ui.dp(12).toFloat()
+
+    /** The border being dragged: 0 the growing zone's start, 1 the everything zone's, -1 none. */
+    private var dragging = -1
+
+    var fromLeft = preferences.getBoolean(KeyboardView.DELETE_FROM_LEFT, false)
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    init {
+        // Kept in step with the core's borders, which it holds the same way.
+        precise = precise.coerceIn(KeyboardView.DELETE_PRECISE_LEAST, KeyboardView.DELETE_ALL_OFF - KeyboardView.DELETE_GROWING_LEAST)
+        all = all.coerceIn(precise + KeyboardView.DELETE_GROWING_LEAST, KeyboardView.DELETE_ALL_OFF)
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), ui.dp(56))
+    }
+
+    private val inset get() = handleWidth
+    private val span get() = width - 2 * inset
+
+    /** The x of `percent` of the width from the delete edge. */
+    private fun x(percent: Int) = if (fromLeft) inset + span * percent / 100f else width - inset - span * percent / 100f
+
+    override fun onDraw(canvas: Canvas) {
+        val top = ui.dp(6).toFloat()
+        val bottom = height - top
+        val starts = listOf(0, precise, all, KeyboardView.DELETE_ALL_OFF)
+        for (zone in 0..2) {
+            if (starts[zone] >= starts[zone + 1]) continue
+            val (left, right) = listOf(x(starts[zone]), x(starts[zone + 1])).sorted()
+            // The zones meet in straight lines; only the bar's own ends are rounded.
+            fill.color = KeyboardView.DELETE_ZONE_COLORS[zone] and 0x00FFFFFF or (0x90 shl 24)
+            val path = Path()
+            val rounded = floatArrayOf(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f)
+            val atLeftEnd = left <= inset + 1
+            val atRightEnd = right >= width - inset - 1
+            if (atLeftEnd) rounded.fill(corner, 0, 2).also { rounded.fill(corner, 6, 8) }
+            if (atRightEnd) rounded.fill(corner, 2, 6)
+            path.addRoundRect(left, top, right, bottom, rounded, Path.Direction.CW)
+            canvas.drawPath(path, fill)
+            val name = names[zone]
+            if (label.measureText(name) < right - left - ui.dp(8)) {
+                canvas.drawText(name, (left + right) / 2, (top + bottom) / 2 - (label.ascent() + label.descent()) / 2, label)
+            }
+        }
+        fill.color = ui.accent
+        for (border in listOf(precise, all)) {
+            val at = x(border)
+            canvas.drawRoundRect(at - handleWidth / 2, 0f, at + handleWidth / 2, height.toFloat(), handleWidth / 2, handleWidth / 2, fill)
+        }
+    }
+
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(event: android.view.MotionEvent): Boolean {
+        val percent = ((if (fromLeft) event.x - inset else width - inset - event.x) / span * 100).toInt()
+        when (event.actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN -> {
+                val near = listOf(precise, all).map { kotlin.math.abs(x(it) - event.x) }
+                dragging = when {
+                    near.min() > ui.dp(32) -> -1
+                    // Borders on top of each other: the one the finger moves towards.
+                    near[1] <= near[0] -> 1
+                    else -> 0
+                }
+                if (dragging < 0) return false
+                parent.requestDisallowInterceptTouchEvent(true)
+            }
+            android.view.MotionEvent.ACTION_MOVE -> {
+                val snapped = (percent + 2) / 5 * 5
+                if (dragging == 0) {
+                    precise = snapped.coerceIn(KeyboardView.DELETE_PRECISE_LEAST, minOf(all, KeyboardView.DELETE_ALL_OFF) - KeyboardView.DELETE_GROWING_LEAST)
+                } else if (dragging == 1) {
+                    all = snapped.coerceIn(precise + KeyboardView.DELETE_GROWING_LEAST, KeyboardView.DELETE_ALL_OFF)
+                }
+                invalidate()
+            }
+            android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                dragging = -1
+                preferences.edit().putInt(KeyboardView.DELETE_PRECISE, precise).putInt(KeyboardView.DELETE_ALL, all).apply()
+            }
+        }
+        return true
+    }
+}
+
 private class ThemePreview(context: Context, private val theme: Theme) : View(context) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val corner = resources.displayMetrics.density * 10

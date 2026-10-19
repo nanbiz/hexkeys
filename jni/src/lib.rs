@@ -234,9 +234,7 @@ fn action(env: &mut JNIEnv, action: Action) -> jobjectArray {
         Action::Nothing => ("nothing", String::new()),
         Action::Swipe => ("swipe", String::new()),
         Action::DeleteAll { started } => ("delete_all", (started as u8).to_string()),
-        Action::Delete { pieces, words, started } => {
-            ("delete", format!("{pieces} {} {}", words as u8, started as u8))
-        }
+        Action::Delete { characters, words, started } => ("delete", format!("{characters} {words} {}", started as u8)),
     };
     let array = env
         .new_object_array(2, "java/lang/String", jni::objects::JObject::null())
@@ -335,12 +333,12 @@ pub extern "system" fn Java_io_github_tieo_hexkeys_Core_movingCursor(_env: JNIEn
 }
 
 /// While a delete slide is under way, where it started and where the
-/// finger is, as two x positions, then 1 when it reached the far side and
-/// deletes whole words, else 0; empty otherwise.
+/// finger is, as two x positions, then the zone it is in: 0 precise, 1
+/// growing, 2 everything; empty otherwise.
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_tieo_hexkeys_Core_deleting(env: JNIEnv, _class: JClass, handle: jlong) -> jfloatArray {
     let flat: Vec<f32> =
-        keyboard(handle).deleting().map_or(Vec::new(), |(from, to, far)| vec![from, to, if far { 1.0 } else { 0.0 }]);
+        keyboard(handle).deleting().map_or(Vec::new(), |(from, to, zone)| vec![from, to, zone as f32]);
     floats(&env, &flat)
 }
 
@@ -624,20 +622,31 @@ pub extern "system" fn Java_io_github_tieo_hexkeys_Core_decodeSwipe(
     array.into_raw()
 }
 
-/// Sets up the gestures: delete swipes from the left edge instead of the
-/// right, and the percent of the width in which a delete swipe deletes
-/// everything.
+/// Sets up the gestures: delete slides from the left edge instead of the
+/// right, and where their precise and everything zones start, in percent of
+/// the width from that edge.
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_tieo_hexkeys_Core_configure(
     _env: JNIEnv,
     _class: JClass,
     handle: jlong,
     delete_from_left: jboolean,
+    delete_precise_percent: jint,
     delete_all_percent: jint,
 ) {
     let gestures = &mut keyboard(handle).gestures;
     gestures.delete_from_left = delete_from_left != 0;
+    gestures.delete_precise_percent = u32::try_from(delete_precise_percent).unwrap_or(hexkeys::DELETE_PRECISE_PERCENT);
     gestures.delete_all_percent = u32::try_from(delete_all_percent).unwrap_or(hexkeys::DELETE_ALL_PERCENT);
+}
+
+/// Where a delete slide's precise zone ends and its everything zone starts,
+/// in pixels from the edge it comes in from; the second is the width when
+/// there is no everything zone.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_io_github_tieo_hexkeys_Core_deleteBorders(env: JNIEnv, _class: JClass, handle: jlong) -> jfloatArray {
+    let (precise, all) = keyboard(handle).delete_borders();
+    floats(&env, &[precise, all])
 }
 
 /// The accented letters of the lexicon's languages by plain letter, as

@@ -65,7 +65,7 @@ object Core {
     /** Shift: 0 off, 1 for the next letter, 2 locked. */
     external fun shiftState(handle: Long): Int
 
-    /** While a delete slide is under way, the x it started at, the finger's x, and 1 on the far side where whole words go; empty otherwise. */
+    /** While a delete slide is under way, the x it started at, the finger's x, and its zone: 0 precise, 1 growing, 2 everything; empty otherwise. */
     external fun deleting(handle: Long): FloatArray
 
     /** The key the finger went down on, or -1. */
@@ -76,15 +76,18 @@ object Core {
     external fun touchMove(handle: Long, x: Float, y: Float, time: Long): Array<String>
 
     /**
-     * Delete swipes from the left edge instead of the right, and how far a delete swipe
-     * reaches to delete everything, in percent of the width from that edge.
+     * Delete slides from the left edge instead of the right, and where their growing and
+     * everything zones start, in percent of the width from that edge.
      */
-    external fun configure(handle: Long, deleteFromLeft: Boolean, deleteAllPercent: Int)
+    external fun configure(handle: Long, deleteFromLeft: Boolean, deletePrecisePercent: Int, deleteAllPercent: Int)
+
+    /** Where the growing and the everything zones start, in pixels from the delete edge; the second is the width when there is none. */
+    external fun deleteBorders(handle: Long): FloatArray
 
     /**
      * What lifting means, as kind and text. The kinds are commit, backspace, enter,
      * enter_action, emoji, clipboard, voice, hide, language (text 1 or -1), cursor (text "dx dy"),
-     * redraw, nothing, swipe, delete_all, and delete (text "pieces words started", the last two 0 or 1).
+     * redraw, nothing, swipe, delete_all, and delete (text "characters words started", the last 0 or 1).
      */
     external fun touchUp(handle: Long, x: Float, y: Float, time: Long): Array<String>
     external fun touchCancel(handle: Long)

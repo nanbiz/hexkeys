@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="percent">%1$d %%</string>
     <string name="off">Aus</string>
 
     <!-- Setup and the page's first cards -->
@@ -21,8 +20,6 @@
     <string name="delete_from">Löschen durch Ziehen von</string>
     <string name="left_edge">Linker Rand</string>
     <string name="right_edge">Rechter Rand</string>
-    <string name="delete_all">So weit ziehen, um alles zu löschen</string>
-    <string name="delete_all_hint">Ein kürzeres Ziehen löscht unterwegs ebenfalls mehr Zeichen. Aus lässt ganze Wörter stehen, wenn du auf der anderen Seite verweilst.</string>
 
     <!-- Voice -->
     <string name="voice">Spracheingabe</string>
@@ -144,4 +141,9 @@
     <string name="info">Info</string>
     <string name="themes_dark">Dunkel</string>
     <string name="themes_light">Hell</string>
+    <string name="delete_zones">Bereiche</string>
+    <string name="delete_zone_precise">abc</string>
+    <string name="delete_zone_growing">Wörter</string>
+    <string name="delete_zone_all">alles</string>
+    <string name="delete_zones_info">Vom Rand aus über die Zahlenreihe ziehen. Im ersten Bereich löscht jeder Schritt ein Zeichen. Im zweiten gehen ganze Wörter, umso mehr pro Schritt, je weiter du ziehst, und Verweilen dort löscht weitere Wörter. Der letzte Bereich löscht alles vor dem Cursor. Zurückziehen holt den Text zurück. Ziehe die letzte Grenze ans Ende, um das Löschen von allem wegzulassen.</string>
 </resources>

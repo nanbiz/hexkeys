@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Hexkeys</string>
-    <string name="percent">%1$d %%</string>
     <string name="off">Off</string>
 
     <!-- Setup and the page's first cards -->
@@ -22,8 +21,6 @@
     <string name="delete_from">Delete by sliding in from</string>
     <string name="left_edge">Left edge</string>
     <string name="right_edge">Right edge</string>
-    <string name="delete_all">Slide this far to delete everything</string>
-    <string name="delete_all_hint">A shorter slide also deletes more characters on the way. Off keeps whole words for resting at the far side.</string>
 
     <!-- Voice -->
     <string name="voice">Voice</string>
@@ -145,4 +142,9 @@
     <string name="info">Info</string>
     <string name="themes_dark">Dark</string>
     <string name="themes_light">Light</string>
+    <string name="delete_zones">Zones</string>
+    <string name="delete_zone_precise">abc</string>
+    <string name="delete_zone_growing">words</string>
+    <string name="delete_zone_all">all</string>
+    <string name="delete_zones_info">Slide in from the edge along the number row. In the first zone each step takes one character. In the second, whole words go, more per step the farther you slide, and resting there keeps taking words. The last zone takes everything before the cursor. Sliding back puts the text back. Drag the last border to the end to leave deleting everything out.</string>
 </resources>
