@@ -622,21 +622,23 @@ class KeyboardView(
                 drawLabel(canvas, Core.popupLabel(handle, index), Core.popupLabelPosition(handle, index), cellWidth)
             }
         }
-        // A delete slide shows its zones faintly and washes the keys it has crossed, from
-        // the edge to the finger, in the colour of the zone the finger is in.
+        // A delete slide shows its zones faintly from where it started and washes the keys
+        // it has crossed, from there to the finger, each in its zone's colour.
         val deleting = Core.deleting(handle)
         if (deleting.size == 3) {
             val fromLeft = Dictionaries.preferences(context).getBoolean(DELETE_FROM_LEFT, false)
             fun at(fromEdge: Float) = if (fromLeft) fromEdge else width - fromEdge
             val bottom = Core.height(handle)
             val (words, endless) = Core.deleteBorders(handle).let { it[0] to it[1] }
-            val starts = floatArrayOf(0f, words, endless, width.toFloat())
+            // The zones run from where the slide started, as their sizes do.
+            val start = if (fromLeft) deleting[0] else width - deleting[0]
+            val starts = floatArrayOf(start, words, endless, width.toFloat())
             for (zone in 0..2) {
                 if (starts[zone] >= starts[zone + 1]) continue
                 deletePaint.color = DELETE_ZONE_COLORS[zone] and 0x00FFFFFF or (0x18 shl 24)
                 canvas.drawRect(minOf(at(starts[zone]), at(starts[zone + 1])), 0f, maxOf(at(starts[zone]), at(starts[zone + 1])), bottom, deletePaint)
             }
-            // The wash runs from the edge to the finger, each zone it crossed in its colour.
+            // The wash runs from the start to the finger, each zone it crossed in its colour.
             val reached = if (fromLeft) deleting[1] else width - deleting[1]
             for (zone in 0..2) {
                 val end = minOf(starts[zone + 1], reached)
