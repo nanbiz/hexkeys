@@ -39,8 +39,7 @@ Sechsecke füllen eine Fläche lückenlos, daher kann jede Taste so groß sein, 
 | Auf `@#€` nach oben wischen | Öffnet die Emoji |
 | Auf der Leertaste zur Seite wischen | Wechselt die Sprache |
 | Die Leertaste halten und bewegen | Lenkt den Cursor durch den Text, auch nach oben und unten |
-| Vom Rand der Zahlenreihe hineinziehen | Löscht beim Ziehen, je weiter und langsamer, desto mehr; zurückziehen, um es wiederherzustellen |
-| Bis zur eingestellten Distanz ziehen (80 % der Breite) | Löscht alles vor dem Cursor; wieder zurückziehen, um es wiederzuholen |
+| Vom Rand der Zahlenreihe hineinziehen | Löscht die letzten Buchstaben einzeln, dann ganze Wörter bis zu den letzten zehn, dann auf der anderen Seite Wörter immer schneller, solange du dort bleibst; zurückziehen, um es wiederherzustellen |
 | In der Mitte der Zahlenreihe ziehen | Bewegt den Cursor, ein Zeichen pro Schritt |
 | Umschalt- oder Rücktaste halten (die optionalen Tasten) | Sperrt Großbuchstaben oder löscht wiederholt |
 
@@ -53,13 +52,13 @@ Sechsecke füllen eine Fläche lückenlos, daher kann jede Taste so groß sein, 
 - **Zwischenablage**: Das gerade Kopierte wartet in der Leiste auf ein Einfügen mit einem Tipp; Einträge bleiben eine Stunde, angeheftet dauerhaft.
 - **Emoji** mit Suche nach Namen in jeder Sprache, die du verwendest.
 - **Designs**: Dämmerung, Papier, Glut, sieben weitere dunkle (Mitternacht, Aurora, Mokka, Wald, Abgrund, Pflaume, Nordisch), die Farben deines Geräts (ab Android 12), schlicht dunkel und schlicht hell. Die Start-Designs färben jeden Buchstaben nach seiner QWERTZ-Reihe, damit verschobene Buchstaben leicht zu finden bleiben.
-- **Zwei Layouts**: Leertaste in der Mitte (Standard) oder Leertaste unten. Im Layout mit der Leertaste in der Mitte ist die Taste links davon das Komma oder eine von Rücktaste, Emoji, Zwischenablage, Diktat, Tastatur ausblenden oder eine zweite Leertaste.
+- **Zwei Layouts**: Leertaste in der Mitte (Standard) oder Leertaste unten. Im Layout mit der Leertaste in der Mitte ist die Taste links davon das Komma, die Rücktaste oder eine zweite Leertaste.
 - **Größen**: Die ganze Tastatur, die Buchstabentasten und die Zahlenreihe lassen sich einzeln skalieren, und die Zahlenreihe kann entfallen.
 - **Englisch und Deutsch**: Die App und ihre Hilfe sprechen Englisch, und Deutsch, wenn umgestellt.
 
 ## Einstellungen
 
-Alles findest du in den Einstellungen der Tastatur, die sich über das App-Symbol oder das Zahnrad in der Vorschlagsleiste öffnen. Die **Hilfe** dort erklärt die Tastatur kurz, in der Sprache der App.
+Alles findest du in den Einstellungen der Tastatur, die sich über das App-Symbol oder das Zahnrad in der Vorschlagsleiste öffnen; Layout, Design und Größen haben dort eine eigene Seite **Aussehen**, über der Tastatur, wie sie daraus wird. Die **Hilfe** im Menü der Einstellungen erklärt die Tastatur kurz, in der Sprache der App.
 
 | Einstellung | Auswahl (Standard) |
 |---|---|
@@ -67,10 +66,12 @@ Alles findest du in den Einstellungen der Tastatur, die sich über das App-Symbo
 | Autokorrektur | Aus, Eindeutige, Alle (Standard) |
 | Neue Wörter lernen | Aus (Standard), an; Vergessen löscht das Gelernte |
 | Löschen durch Ziehen von | Linker Rand, rechter Rand (Standard) |
-| So weit ziehen, um alles zu löschen | 50 % bis 100 % der Breite (standardmäßig 80 %); ein kürzeres Ziehen löscht unterwegs ebenfalls mehr Zeichen, 100 % ist Aus und lässt das Ziehen wie früher, wobei Verweilen auf der anderen Seite ganze Wörter löscht |
+| Bereiche | Wo die Bereiche für Buchstaben, Wörter und das endlose Löschen beginnen, gezogen auf einem Bild der Zahlenreihe (Wörter ab 45 %, endlos ab 90 % der Breite); die letzte Grenze ans Ende gezogen lässt den endlosen Bereich weg |
+| Buchstabe für Buchstabe durch | Die letzten 3 bis 30 Buchstaben (10) |
+| Wort für Wort bis | Die letzten 2 bis 30 Wörter (10) |
 | Spracheingabe | Aus (Standard), oder An, was das Sprachmodell einmalig herunterlädt (670 MB) |
 | Layout | Leertaste in der Mitte (Standard), Leertaste unten |
-| Taste links der Leertaste | Komma (Standard), Rücktaste, Emoji, Zwischenablage, Diktat, Tastatur ausblenden, zweite Leertaste; nur im Layout mit der Leertaste in der Mitte |
+| Taste links der Leertaste | Komma (Standard), Rücktaste, zweite Leertaste; nur im Layout mit der Leertaste in der Mitte |
 | Umschalt- und Rücktaste | Aus (Standard), an; ohne Zahlenreihe immer vorhanden |
 | Design | Eines der oben genannten Designs (standardmäßig Dämmerung) |
 | Ganze Tastatur | 70 % bis 130 % der Höhe (100 %) |
@@ -78,7 +79,6 @@ Alles findest du in den Einstellungen der Tastatur, die sich über das App-Symbo
 | Zahlenreihe | An (Standard), aus; ohne sie liegen die Ziffern bei den Symbolen, und Löschen durch Ziehen und Cursor-Bewegen entlang der Reihe entfallen, daher sind stattdessen die Umschalt- und Rücktaste vorhanden; die Emoji-Suche braucht sie ebenfalls |
 | Höhe der Zahlenreihe | 50 % bis 150 % (100 %) |
 | Sprachen | Die Wörterbücher, in denen vorgeschlagen wird; Ankreuzen lädt eines herunter |
-| Danksagungen | Wer gemacht hat, worauf die Tastatur aufbaut |
 
 Im Querformat entfallen die Vorschlagsleiste und die Zahlenreihe, damit die App Platz hat, und Umschalt- und Rücktaste sind Tasten.
 
@@ -103,7 +103,7 @@ Die APK landet in `android/app/build/outputs/apk/debug/`.
 
 ## Danksagungen
 
-hexkeys baut auf der Arbeit anderer auf; die App listet alle unter **Einstellungen › Danksagungen**.
+hexkeys baut auf der Arbeit anderer auf; die App listet alle unter **Danksagungen** im Menü der Einstellungen.
 
 - English dictionary: Android Open Source Project (Apache-2.0); other languages from [Helium314/aosp-dictionaries](https://codeberg.org/Helium314/aosp-dictionaries), each under its own license
 - Word statistics for autocorrect: the [Leipzig Corpora Collection](https://wortschatz.uni-leipzig.de/en/download) (CC BY), D. Goldhahn, T. Eckart, U. Quasthoff, *Building Large Monolingual Dictionaries at the Leipzig Corpora Collection: From 100 to 200 Languages*, LREC 2012

@@ -39,8 +39,7 @@ Hexagons tile a surface with no gaps, so every key can be as large as the screen
 | Flick up on `@#€` | Opens emoji |
 | Flick sideways on space | Switches the language |
 | Hold space and move | Steers the cursor through the text, up and down too |
-| Slide in from the edge of the number row | Deletes as you slide, more the farther and the slower; slide back to put it back |
-| Slide to the set distance (80% of the width) | Deletes everything before the cursor; slide back out to bring it back |
+| Slide in from the edge of the number row | Deletes the last letters one by one, then whole words up to the last ten, then on the far side words ever faster for as long as you stay there; slide back to put it back |
 | Slide along the middle of the number row | Moves the cursor, one character per step |
 | Hold shift or backspace (the optional keys) | Locks capitals, or deletes again and again |
 
@@ -53,13 +52,13 @@ Hexagons tile a surface with no gaps, so every key can be as large as the screen
 - **Clipboard**: what you just copied waits in the strip for a one-tap paste; clips stay an hour, or for good once pinned.
 - **Emoji** with search by name in every language you use.
 - **Themes**: Dusk, Paper, Ember, seven more dark ones (Midnight, Aurora, Mocha, Forest, Abyss, Plum, Nordic), your device's colours (Android 12 and later), plain dark and plain light. The starter themes colour each letter by its QWERTZ row, so rearranged letters stay easy to find.
-- **Two layouts**: space in the middle (the default) or space at the bottom. In the middle layout the key left of space is the comma, or one of backspace, emoji, clipboard, dictation, hide keyboard or a second space.
+- **Two layouts**: space in the middle (the default) or space at the bottom. In the middle layout the key left of space is the comma, backspace or a second space.
 - **Sizes**: the whole keyboard, the letter keys and the number row scale on their own, and the number row can be left out.
 - **English and German**: the app and its help speak English, and German when switched.
 
 ## Settings
 
-Everything is under the keyboard's settings, which open from the app icon or the gear in the suggestion strip. **Help** there explains the keyboard in short, in the app's language.
+Everything is under the keyboard's settings, which open from the app icon or the gear in the suggestion strip; layout, theme and sizes are on their own **Look** page there, above the keyboard as they make it. **Help** in the settings' menu explains the keyboard in short, in the app's language.
 
 | Setting | Choices (default) |
 |---|---|
@@ -67,10 +66,12 @@ Everything is under the keyboard's settings, which open from the app icon or the
 | Autocorrect | Off, Obvious, All (default) |
 | Learn new words | Off (default), on; Forget deletes what was learned |
 | Delete by sliding in from | Left edge, right edge (default) |
-| Slide this far to delete everything | 50% to 100% of the width (80% by default); a shorter distance also deletes more characters on the way, 100% is Off and keeps the slide as it was, where resting at the far side deletes whole words |
+| Zones | Where the delete slide's letters, words and endless zones begin, dragged on a picture of the number row (words from 45%, endless from 90% of the width); dragging the last border to the end leaves out the endless zone |
+| Letter by letter through | The last 3 to 30 letters (10) |
+| Word by word up to | The last 2 to 30 words (10) |
 | Voice | Off (default), or On, which downloads the speech model once (670 MB) |
 | Layout | Space in the middle (default), space at the bottom |
-| Key left of space | Comma (default), backspace, emoji, clipboard, dictation, hide keyboard, second space; only in the middle layout |
+| Key left of space | Comma (default), backspace, second space; only in the middle layout |
 | Shift and backspace keys | Off (default), on; always there without a number row |
 | Theme | Any of the themes above (Dusk by default) |
 | Whole keyboard | 70% to 130% of the height (100%) |
@@ -78,7 +79,6 @@ Everything is under the keyboard's settings, which open from the app icon or the
 | Number row | On (default), off; without it the digits are on the symbols and deleting by sliding and the cursor slide along the row are gone, so the shift and backspace keys are there instead; the emoji search needs it too |
 | Number row height | 50% to 150% (100%) |
 | Languages | The dictionaries to suggest in; ticking one downloads it |
-| Credits | Who made what the keyboard is built on |
 
 In landscape the suggestion strip and the number row are left out to give the app room, and shift and backspace are keys.
 
@@ -103,7 +103,7 @@ The APK lands in `android/app/build/outputs/apk/debug/`.
 
 ## Credits
 
-hexkeys builds on the work of others; the app lists all of them under **Settings › Credits**.
+hexkeys builds on the work of others; the app lists all of them under **Credits** in the settings' menu.
 
 - English dictionary: Android Open Source Project (Apache-2.0); other languages from [Helium314/aosp-dictionaries](https://codeberg.org/Helium314/aosp-dictionaries), each under its own license
 - Word statistics for autocorrect: the [Leipzig Corpora Collection](https://wortschatz.uni-leipzig.de/en/download) (CC BY), D. Goldhahn, T. Eckart, U. Quasthoff, *Building Large Monolingual Dictionaries at the Leipzig Corpora Collection: From 100 to 200 Languages*, LREC 2012
