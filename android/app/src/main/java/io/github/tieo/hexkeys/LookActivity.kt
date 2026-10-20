@@ -59,7 +59,7 @@ class LookActivity : LocalizedActivity() {
 
     /** How tall the number row is, offered while there is one. */
     private val numberRowHeight by lazy {
-        ui.stepper(getString(R.string.size_numbers), KeyboardView.SIZE_NUMBERS, KeyboardView.SIZE_NUMBERS_RANGE, KeyboardView.SIZE_NUMBERS_DEFAULT, info = getString(R.string.size_numbers_info)) {
+        ui.stepper(getString(R.string.size_numbers), KeyboardView.SIZE_NUMBERS, KeyboardView.SIZE_NUMBERS_RANGE, KeyboardView.SIZE_DEFAULT, info = getString(R.string.size_numbers_info)) {
             preview.refresh()
         }.also { it.visibility = if (KeyboardView.numberRow(ui.preferences)) View.VISIBLE else View.GONE }
     }

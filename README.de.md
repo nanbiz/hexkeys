@@ -77,7 +77,7 @@ Alles findest du in den Einstellungen der Tastatur, die sich über das App-Symbo
 | Ganze Tastatur | 70 % bis 130 % der Höhe (100 %) |
 | Buchstabentasten | 70 % bis 130 % (100 %) |
 | Zahlenreihe | An (Standard), aus; ohne sie liegen die Ziffern bei den Symbolen, und Löschen durch Ziehen und Cursor-Bewegen entlang der Reihe entfallen, daher sind stattdessen die Umschalt- und Rücktaste vorhanden; die Emoji-Suche braucht sie ebenfalls |
-| Höhe der Zahlenreihe | 50 % bis 150 % (85 %) |
+| Höhe der Zahlenreihe | 50 % bis 150 % (100 %) |
 | Sprachen | Die Wörterbücher, in denen vorgeschlagen wird; Ankreuzen lädt eines herunter |
 
 Im Querformat entfallen die Vorschlagsleiste und die Zahlenreihe, damit die App Platz hat, und Umschalt- und Rücktaste sind Tasten.

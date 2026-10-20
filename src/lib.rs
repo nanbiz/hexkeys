@@ -157,8 +157,9 @@ const NUMBER_ROW: usize = usize::MAX;
 /// as each other. None: thumbs aiming at the top row landed on the digits.
 const TOP_CUT: f32 = 0.0;
 
-/// Height of the number row in cell heights.
-const NUMBER_BAND: f32 = 1.25;
+/// Height of the number row in cell heights: enough to slide along, little
+/// enough to leave the letters their height.
+const NUMBER_BAND: f32 = 1.0625;
 
 /// The share of the number row's height over which its two rows interlock.
 const NUMBER_INTERLOCK: f32 = 0.4;

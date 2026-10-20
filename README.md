@@ -77,7 +77,7 @@ Everything is under the keyboard's settings, which open from the app icon or the
 | Whole keyboard | 70% to 130% of the height (100%) |
 | Letter keys | 70% to 130% (100%) |
 | Number row | On (default), off; without it the digits are on the symbols and deleting by sliding and the cursor slide along the row are gone, so the shift and backspace keys are there instead; the emoji search needs it too |
-| Number row height | 50% to 150% (85%) |
+| Number row height | 50% to 150% (100%) |
 | Languages | The dictionaries to suggest in; ticking one downloads it |
 
 In landscape the suggestion strip and the number row are left out to give the app room, and shift and backspace are keys.
