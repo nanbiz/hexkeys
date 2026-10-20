@@ -221,10 +221,9 @@ class HexInputMethod : InputMethodService() {
      * query alike: `text` is how far the slide has come through its letters
      * zone and its words zone, in thousandths, how many words its endless
      * zone has taken, and whether it just started. The letters zone takes
-     * the letters of the last few words one by one, the words zone whole
-     * words up to the last several, the endless zone words beyond them, as
-     * [KeyboardView.DELETE_LETTER_WORDS] and [KeyboardView.DELETE_WORD_WORDS]
-     * set. `undo` is a correction made right before, which the first letter
+     * the last few letters one by one, the words zone whole words up to the
+     * last several, the endless zone words beyond them, as
+     * [KeyboardView.DELETE_LETTERS] and [KeyboardView.DELETE_WORD_WORDS] set. `undo` is a correction made right before, which the first letter
      * takes back, and `justSwiped` a word just swiped, which goes whole as
      * the first one.
      */
@@ -240,10 +239,9 @@ class HexInputMethod : InputMethodService() {
             wordPeak = Peak()
             // The zones' spans, from the text as the slide starts.
             val preferences = Dictionaries.preferences(this)
-            val letterWords = preferences.getInt(KeyboardView.DELETE_LETTER_WORDS, KeyboardView.DELETE_LETTER_WORDS_DEFAULT)
+            slideLetters = preferences.getInt(KeyboardView.DELETE_LETTERS, KeyboardView.DELETE_LETTERS_DEFAULT)
             val wordWords = preferences.getInt(KeyboardView.DELETE_WORD_WORDS, KeyboardView.DELETE_WORD_WORDS_DEFAULT)
-            slideLetters = characterCount(lastWords(before, letterWords))
-            slideWords = maxOf(0, wordWords - letterWords)
+            slideWords = maxOf(0, wordWords - wholeWords(lastCharacters(before, slideLetters), before))
         }
         val word = swipedBeforeDelete
         target.beginBatch()
@@ -337,17 +335,20 @@ class HexInputMethod : InputMethodService() {
     private var slideLetters = 0
     private var slideWords = 0
 
-    /** The last `count` words of `text`, with the spaces after them. */
-    private fun lastWords(text: String, count: Int): String =
-        Regex("(\\S+\\s*){1,$count}$").find(text)?.value ?: text.takeLast(text.length - text.trimEnd().length)
-
-    /** Characters as the reader sees them: a whole emoji or letter with its marks counts once. */
-    private fun characterCount(text: String): Int {
+    /** The last `count` characters of `text` as the reader sees them, a whole emoji counting once. */
+    private fun lastCharacters(text: String, count: Int): String {
         val breaks = java.text.BreakIterator.getCharacterInstance()
         breaks.setText(text)
-        var count = 0
-        while (breaks.next() != java.text.BreakIterator.DONE) count += 1
-        return count
+        var at = text.length
+        repeat(count) { at = breaks.preceding(at).takeIf { it != java.text.BreakIterator.DONE } ?: 0 }
+        return text.substring(at)
+    }
+
+    /** The words wholly inside `tail`, the end of `text`: a word it starts inside of does not count. */
+    private fun wholeWords(tail: String, text: String): Int {
+        val cut = text.length > tail.length && !text[text.length - tail.length - 1].isWhitespace() && tail.firstOrNull()?.isWhitespace() == false
+        val words = Regex("\\S+").findAll(tail).count()
+        return if (cut) words - 1 else words
     }
 
     /** The correction the delete slide under way started right after, and whether it has undone it. */

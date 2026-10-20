@@ -44,6 +44,12 @@
             android:exported="false" />
 
         <activity
+            android:name=".LookActivity"
+            android:label="@string/look"
+            android:theme="@android:style/Theme.DeviceDefault"
+            android:exported="false" />
+
+        <activity
             android:name=".LanguagesActivity"
             android:label="@string/languages"
             android:theme="@android:style/Theme.DeviceDefault"

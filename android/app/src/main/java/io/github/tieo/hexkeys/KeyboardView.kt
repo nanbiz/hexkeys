@@ -1287,12 +1287,12 @@ class KeyboardView(
         const val DELETE_ENDLESS_OFF = 100
 
         /**
-         * Preferences: the last words the letters zone deletes letter by letter, and the
-         * last words the slide has deleted by the words zone's far end.
+         * Preferences: the last letters the letters zone deletes one by one, and the last
+         * words the slide has deleted by the words zone's far end.
          */
-        const val DELETE_LETTER_WORDS = "delete_letter_words"
-        const val DELETE_LETTER_WORDS_DEFAULT = 3
-        val DELETE_LETTER_WORDS_RANGE = 1..6
+        const val DELETE_LETTERS = "delete_letters"
+        const val DELETE_LETTERS_DEFAULT = 10
+        val DELETE_LETTERS_RANGE = 3..30
         const val DELETE_WORD_WORDS = "delete_word_words"
         const val DELETE_WORD_WORDS_DEFAULT = 10
         val DELETE_WORD_WORDS_RANGE = 2..30

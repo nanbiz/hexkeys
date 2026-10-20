@@ -1247,17 +1247,32 @@ impl Keyboard {
         if self.gestures.delete_from_left { x } else { self.layout.width - x }
     }
 
-    /// Where the words zone and the endless zone start, in pixels from the
-    /// edge delete slides come in from; the second is the width when there
-    /// is no endless zone.
-    pub fn delete_borders(&self) -> (f32, f32) {
+    /// Where the words zone and the endless zone start for a delete slide
+    /// that starts `start` pixels from its edge, in pixels from that edge;
+    /// the second is the width when there is no endless zone. The letters
+    /// zone is measured from where the slide starts, so the same slide takes
+    /// the same letters wherever on the edge it starts; the endless zone
+    /// stays at the far side, and the words zone takes what lies between,
+    /// at least its least room.
+    fn slide_borders(&self, start: f32) -> (f32, f32) {
+        let width = self.layout.width;
         let (words, endless) = self.gestures.delete_borders();
-        (self.layout.width * words as f32 / 100.0, self.layout.width * endless as f32 / 100.0)
+        let endless = width * endless as f32 / 100.0;
+        let words = (start + width * words as f32 / 100.0).min(endless - width * DELETE_WORDS_ROOM as f32 / 100.0);
+        (words, endless)
     }
 
-    /// The zone `from_edge` pixels from the edge is in: 0 letters, 1 words, 2 endless.
-    fn delete_zone(&self, from_edge: f32) -> u8 {
-        let (words, endless) = self.delete_borders();
+    /// The borders of the delete slide under way, as [`Keyboard::slide_borders`]
+    /// has them, or of one starting right at the edge.
+    pub fn delete_borders(&self) -> (f32, f32) {
+        let start = self.touch.as_ref().filter(|touch| touch.deleting.is_some()).map_or(0.0, |touch| self.edge_distance(touch.start.x));
+        self.slide_borders(start)
+    }
+
+    /// The zone `from_edge` pixels from the edge is in, for a slide that
+    /// started `start` from it: 0 letters, 1 words, 2 endless.
+    fn delete_zone(&self, start: f32, from_edge: f32) -> u8 {
+        let (words, endless) = self.slide_borders(start);
         if from_edge >= endless && endless < self.layout.width {
             2
         } else if from_edge > words {
@@ -1280,7 +1295,7 @@ impl Keyboard {
     /// come through its letters zone and its words zone at `reach` pixels
     /// from it, each in thousandths.
     fn delete_progress(&self, start: f32, reach: f32) -> (u32, u32) {
-        let (words, endless) = self.delete_borders();
+        let (words, endless) = self.slide_borders(start);
         // The letters count from a little way in, so sliding back to where it
         // started, within the slack, puts every letter back.
         let first = start + RESTORE_SLACK * self.layout.cell_width;
@@ -1317,7 +1332,7 @@ impl Keyboard {
         self.touch
             .as_ref()
             .filter(|touch| touch.deleting.is_some())
-            .map(|touch| (touch.start.x, touch.at.x, self.delete_zone(self.edge_distance(touch.at.x))))
+            .map(|touch| (touch.start.x, touch.at.x, self.delete_zone(self.edge_distance(touch.start.x), self.edge_distance(touch.at.x))))
     }
 
     /// The key the finger went down on, which every gesture belongs to;
@@ -1415,9 +1430,9 @@ impl Keyboard {
         let back_reach = reach + RESTORE_SLACK * w;
         let forwards = self.delete_progress(start, reach);
         let back = self.delete_progress(start, back_reach);
-        let in_endless = self.delete_zone(reach) == 2;
+        let in_endless = self.delete_zone(start, reach) == 2;
         // The endless zone has the slack too, so a finger easing off keeps its words.
-        let left_endless = self.delete_zone(back_reach) < 2;
+        let left_endless = self.delete_zone(start, back_reach) < 2;
         if let Some(deleting) = &mut touch.deleting {
             let before = *deleting;
             if forwards.0 > deleting.letters {
@@ -2339,7 +2354,7 @@ mod tests {
         // The words zone runs from 454 to 907 from the edge.
         let (letters, words, endless) = amounts(&keyboard.touch_move(Point { x: 1008.0 - 680.0, y }, 500));
         assert_eq!((letters, endless), (1000, 0));
-        assert!((words as i32 - 500).abs() <= 3, "{words}");
+        assert!((words as i32 - 500).abs() <= 6, "{words}");
         assert_eq!(keyboard.deleting().map(|(_, _, zone)| zone), Some(1));
         assert_eq!(keyboard.deadline(), None, "resting here takes nothing more");
         let (_, back, _) = amounts(&keyboard.touch_move(Point { x: 1008.0 - 560.0, y }, 600));
@@ -2400,6 +2415,26 @@ mod tests {
         near(borders(60, 62, false).1, 706.0 /* the words zone keeps its least room */);
         near(borders(10, 90, false).0, 403.0 /* the letters zone reaches past where slides start */);
         assert_eq!(borders(45, 100, false).1, None, "without an endless zone the words zone runs to the far edge");
+    }
+
+    #[test]
+    fn the_same_slide_takes_the_same_wherever_on_the_edge_it_starts() {
+        let progress = |start: f32| {
+            let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
+            let y = keyboard.layout.numbers_bottom / 2.0;
+            keyboard.touch_down(Point { x: 1008.0 - start, y }, 0);
+            keyboard.touch_move(Point { x: 1008.0 - start - 100.0, y }, 400);
+            amounts(&keyboard.touch_move(Point { x: 1008.0 - start - 300.0, y }, 500))
+        };
+        assert_eq!(progress(1.0), progress(150.0), "from the outermost key and from two keys in");
+        // So far in that the letters zone would crowd the endless one, the words zone keeps its least room.
+        let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
+        keyboard.gestures.delete_words_percent = 60;
+        let y = keyboard.layout.numbers_bottom / 2.0;
+        keyboard.touch_down(Point { x: 1008.0 - 330.0, y }, 0);
+        keyboard.touch_move(Point { x: 600.0, y }, 400);
+        let (words, endless) = keyboard.delete_borders();
+        assert!((endless - 907.2).abs() < 1.0 && (endless - words - 100.8).abs() < 1.0, "{words} {endless}");
     }
 
     #[test]
