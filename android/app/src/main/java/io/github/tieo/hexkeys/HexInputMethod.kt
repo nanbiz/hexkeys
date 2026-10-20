@@ -518,7 +518,8 @@ class HexInputMethod : InputMethodService() {
                 val mode = Dictionaries.autocorrectMode(this)
                 // A space typed before the strip caught up waits for it, briefly.
                 if (text in SEPARATORS && mode != "off") currentStrip()
-                val correction = when (mode) {
+                // A separator typed inside a word splits it as it stands.
+                val correction = if (connection.wordAfter().isNotEmpty()) null else when (mode) {
                     "all" -> keyboard?.correction ?: keyboard?.fix
                     "obvious" -> keyboard?.fix
                     else -> null
@@ -598,10 +599,16 @@ class HexInputMethod : InputMethodService() {
             swiped = null
             // Choosing the word as typed over the suggestions keeps it on purpose.
             if (word == keyboard?.unknown) learn(word, LEARNED)
+            // With the cursor inside a word, the suggestion takes the place of the whole word.
+            val rest = connection.wordAfter()
             connection.beginBatch()
-            connection.deleteCodePointsBefore(replaces)
-            connection.commit("$word ")
+            connection.deleteAfter(rest.length)
+            connection.deleteCodePointsBefore(replaces - rest.codePointCount(0, rest.length))
+            val spaced = connection.textAfter(1).firstOrNull()?.isWhitespace() == true
+            connection.commit(if (spaced) word else "$word ")
             connection.endBatch()
+            // A space already after the word is stepped over rather than doubled.
+            if (spaced) connection.moveCursor(1, 0)
             if (Dictionaries.autocorrectMode(this) != "off") amend(connection.textBefore())
         },
         onSettings = {
@@ -1077,8 +1084,9 @@ class HexInputMethod : InputMethodService() {
         val before = editor.textBefore()
         val letters = view.letters
         if (!suggesting || letters == 0L || view.stripBefore == before) return
+        val whole = before + editor.wordAfter()
         val strip = runCatching {
-            Core.words.submit<Array<String>> { Core.strip(lexicon, letters, before) }
+            Core.words.submit<Array<String>> { Core.strip(lexicon, letters, whole) }
                 .get(STRIP_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
         }.getOrNull() ?: return
         view.showStrip(before, strip)
@@ -1097,12 +1105,14 @@ class HexInputMethod : InputMethodService() {
             return
         }
         // Worked out on the words thread; a strip overtaken by newer text is dropped.
+        // With the cursor inside a word, the strip is for the whole word.
         val request = ++stripRequest
         val letters = view.letters
+        val whole = before + editor.wordAfter()
         Core.words.execute {
             if (request != stripRequest || letters == 0L) return@execute
             val started = SystemClock.uptimeMillis()
-            val strip = Core.strip(lexicon, letters, before)
+            val strip = Core.strip(lexicon, letters, whole)
             val took = SystemClock.uptimeMillis() - started
             mainExecutor.execute {
                 view.slow("suggest (words thread)", took)

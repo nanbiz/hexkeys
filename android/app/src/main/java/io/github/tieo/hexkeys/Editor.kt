@@ -48,6 +48,12 @@ class Editor(private val service: InputMethodService) : TextTarget {
     /** Whether [before] reaches back to the start of the field. */
     private var complete = false
 
+    /**
+     * The rest of the word the cursor is in, right after it; null when unknown.
+     * Edits made here at the cursor leave it as it is.
+     */
+    private var after: String? = null
+
     /** The selection as the app last reported it, or as the last edit here left it. */
     var selectionStart = -1
         private set
@@ -59,6 +65,7 @@ class Editor(private val service: InputMethodService) : TextTarget {
     /** A new field, or the same one started over. */
     fun reset(start: Int, end: Int) {
         before = null
+        after = null
         selectionStart = start
         selectionEnd = end
     }
@@ -68,7 +75,10 @@ class Editor(private val service: InputMethodService) : TextTarget {
      * the copy stays; anywhere else it is read again when next needed.
      */
     fun selectionChanged(start: Int, end: Int) {
-        if (start != selectionStart || end != selectionEnd) before = null
+        if (start != selectionStart || end != selectionEnd) {
+            before = null
+            after = null
+        }
         selectionStart = start
         selectionEnd = end
     }
@@ -80,6 +90,21 @@ class Editor(private val service: InputMethodService) : TextTarget {
         before = read
         complete = read.length < CONTEXT
         return read
+    }
+
+    /** The rest of the word the cursor is in, after it: empty at a word's end or between words. */
+    fun wordAfter(): String {
+        after?.let { return it }
+        val read = if (hasSelection) "" else WORD_AT_START.find(textAfter(CONTEXT))?.value.orEmpty()
+        after = read
+        return read
+    }
+
+    /** Deletes `length` UTF-16 characters after the cursor. */
+    fun deleteAfter(length: Int) {
+        if (length <= 0) return
+        connection?.deleteSurroundingText(0, length)
+        after = null
     }
 
     /** Up to `length` characters after the cursor, read from the app. */
@@ -159,6 +184,7 @@ class Editor(private val service: InputMethodService) : TextTarget {
                 selectionStart = target
                 selectionEnd = target
                 before = null
+                after = null
             }
         }
         if (dy != 0) {
@@ -172,6 +198,7 @@ class Editor(private val service: InputMethodService) : TextTarget {
     /** Sends a key to the app, which changes the text in its own way. */
     fun sendKey(code: Int) {
         before = null
+        after = null
         service.sendDownUpKeyEvents(code)
     }
 
@@ -197,6 +224,9 @@ class Editor(private val service: InputMethodService) : TextTarget {
         private const val KEEP = 256
 
         val ENTER = KeyEvent.KEYCODE_ENTER
+
+        /** The letters, digits and marks inside a word a text starts with. */
+        private val WORD_AT_START = Regex("^[\\p{L}\\p{N}'’-]+")
     }
 }
 
