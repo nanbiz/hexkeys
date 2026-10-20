@@ -918,10 +918,9 @@ const ENDLESS_START_MS: u64 = 200;
 
 /// Where the letters zone ends and the words zone starts, as a percent of
 /// the keyboard's width from the edge delete slides come in from, when the
-/// settings say nothing; and the least it may be: slides start in the outer
-/// third, and the letters zone has to reach past it.
+/// settings say nothing; and the least room the letters zone keeps.
 pub const DELETE_WORDS_PERCENT: u32 = 45;
-pub const DELETE_WORDS_LEAST: u32 = 40;
+pub const DELETE_WORDS_LEAST: u32 = 10;
 
 /// Where the words zone ends and the endless zone starts, as a percent of
 /// the width from the edge, when the settings say nothing.
@@ -972,8 +971,8 @@ impl Default for Gestures {
 }
 
 impl Gestures {
-    /// The two borders, kept to where they may be: the letters zone past
-    /// the start, the words zone with room of its own.
+    /// The two borders, kept to where they may be: the letters and the
+    /// words zone each with some room of their own.
     pub fn delete_borders(&self) -> (u32, u32) {
         let words = self.delete_words_percent.clamp(DELETE_WORDS_LEAST, DELETE_ENDLESS_OFF - DELETE_WORDS_ROOM);
         (words, self.delete_endless_percent.clamp(words + DELETE_WORDS_ROOM, DELETE_ENDLESS_OFF))
@@ -2394,7 +2393,8 @@ mod tests {
         near(borders(60, 90, false).0, 605.0);
         near(borders(45, 70, true).1, 706.0);
         near(borders(60, 62, false).1, 706.0 /* the words zone keeps its least room */);
-        near(borders(10, 90, false).0, 403.0 /* the letters zone reaches past where slides start */);
+        near(borders(10, 90, false).0, 101.0);
+        near(borders(5, 90, false).0, 101.0 /* the letters zone keeps its least room */);
         assert_eq!(borders(45, 100, false).1, None, "without an endless zone the words zone runs to the far edge");
     }
 

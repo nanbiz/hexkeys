@@ -1278,7 +1278,7 @@ class KeyboardView(
          */
         const val DELETE_WORDS = "delete_words_percent"
         const val DELETE_WORDS_DEFAULT = 45
-        const val DELETE_WORDS_LEAST = 40
+        const val DELETE_WORDS_LEAST = 10
         const val DELETE_ENDLESS = "delete_endless_percent"
         const val DELETE_ENDLESS_DEFAULT = 90
         const val DELETE_WORDS_ROOM = 10
