@@ -571,9 +571,6 @@ class HexInputMethod : InputMethodService() {
                 it.showEmoji(!it.emojiShown)
                 readEmojiSearch()
             }
-            "clipboard" -> frame?.let { it.showClipboard(!it.clipboardShown) }
-            "voice" -> toggleVoice()
-            "hide" -> requestHideSelf(0)
             "language" -> {
                 // Guessing, then each language in turn, then guessing again.
                 val count = lexiconFiles.size

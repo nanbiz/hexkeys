@@ -68,8 +68,6 @@ class LookActivity : LocalizedActivity() {
     private val leftKeyViews by lazy {
         val names = mapOf(
             "comma" to getString(R.string.left_key_comma), "backspace" to getString(R.string.left_key_backspace),
-            "emoji" to getString(R.string.left_key_emoji), "clipboard" to getString(R.string.left_key_clipboard),
-            "voice" to getString(R.string.left_key_voice), "hide" to getString(R.string.left_key_hide),
             "space" to getString(R.string.left_key_space),
         )
         listOf(
@@ -77,7 +75,6 @@ class LookActivity : LocalizedActivity() {
             ui.segmented(
                 KeyboardView.LEFT_KEYS.map { it to names.getValue(it) },
                 ui.preferences.getString(KeyboardView.LEFT_KEY, null) ?: KeyboardView.DEFAULT_LEFT_KEY,
-                columns = 4,
             ) { id ->
                 ui.preferences.edit().putString(KeyboardView.LEFT_KEY, id).apply()
                 preview.refresh()

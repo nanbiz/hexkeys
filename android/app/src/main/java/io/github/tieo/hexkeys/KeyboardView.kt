@@ -1220,10 +1220,6 @@ class KeyboardView(
             "⌫" to R.drawable.icon_backspace,
             "⏎" to R.drawable.icon_keyboard_return,
             "⇧" to R.drawable.icon_shift,
-            "emoji" to R.drawable.icon_mood,
-            "clipboard" to R.drawable.icon_content_paste,
-            "voice" to R.drawable.icon_mic,
-            "hide" to R.drawable.icon_keyboard_hide,
         )
 
         /** Marks that sit high or low on the line and look misplaced unless centred on their ink. */
@@ -1266,7 +1262,7 @@ class KeyboardView(
          */
         const val LEFT_KEY = "left_key"
         const val DEFAULT_LEFT_KEY = "comma"
-        val LEFT_KEYS = listOf("comma", "backspace", "emoji", "clipboard", "voice", "hide", "space")
+        val LEFT_KEYS = listOf("comma", "backspace", "space")
 
         /** Preference: delete swipes come in from the left edge. */
         const val DELETE_FROM_LEFT = "delete_from_left"

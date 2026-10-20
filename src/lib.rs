@@ -688,18 +688,13 @@ pub fn without_numbers(spec: LayoutSpec) -> LayoutSpec {
 }
 
 /// What the key left of the middle layout's space can be, by the name
-/// the settings store: the comma, backspace, the emoji, the clipboard,
-/// dictation, hiding the keyboard, or a second space.
-pub const LEFT_KEYS: &[&str] = &["comma", "backspace", "emoji", "clipboard", "voice", "hide", "space"];
+/// the settings store: the comma, backspace, or a second space.
+pub const LEFT_KEYS: &[&str] = &["comma", "backspace", "space"];
 
 /// The label of the left key `id` names; the comma for an id no key has.
 fn left_key_label(id: &str) -> &'static str {
     match id {
         "backspace" => "⌫",
-        "emoji" => "emoji",
-        "clipboard" => "clipboard",
-        "voice" => "voice",
-        "hide" => "hide",
         "space" => "space",
         _ => ",",
     }
@@ -835,12 +830,6 @@ pub enum Action {
     /// Open the emoji, by a flick up on the key to the symbols, which are
     /// what emoji are typed among.
     Emoji,
-    /// Open the clipboard, from the key left of space.
-    Clipboard,
-    /// Start or stop dictation, from the key left of space.
-    Voice,
-    /// Hide the keyboard, from the key left of space.
-    Hide,
     /// A sideways flick on space: the next language, or the previous one
     /// when `forward` is false.
     Language { forward: bool },
@@ -1805,10 +1794,6 @@ impl Keyboard {
             "⌫" => Action::Backspace,
             "⏎" => Action::Enter,
             "space" => Action::Commit(" ".into()),
-            "emoji" => Action::Emoji,
-            "clipboard" => Action::Clipboard,
-            "voice" => Action::Voice,
-            "hide" => Action::Hide,
             "ABC" => self.show(0),
             SYMBOLS_KEY => self.show(1),
             "=\\<" => self.show(2),
@@ -2252,7 +2237,7 @@ mod tests {
         assert_eq!(middle.hint(stop), ":");
         assert!(!middle.choices(stop).contains(&",".to_owned()));
         assert_eq!(gesture(&mut middle, ".", &[(0.0, -0.6)]), Action::Commit(":".into()));
-        let mut beside = Keyboard::new(space_middle_with("emoji"), 1008.0, 1.0, 400);
+        let mut beside = Keyboard::new(space_middle_with("backspace"), 1008.0, 1.0, 400);
         assert_eq!(gesture(&mut beside, ".", &[(0.0, -0.6)]), Action::Commit(",".into()), "without a comma key the full stop keeps it");
         let bottom = Keyboard::new(space_bottom(), 1008.0, 1.0, 400);
         assert_eq!(bottom.hint(keyboard_index(&bottom, ".")), ",");
@@ -2280,11 +2265,8 @@ mod tests {
         let expected = [
             ("comma", ",", Action::Commit(",".into())),
             ("backspace", "⌫", Action::Backspace),
-            ("emoji", "emoji", Action::Emoji),
-            ("clipboard", "clipboard", Action::Clipboard),
-            ("voice", "voice", Action::Voice),
-            ("hide", "hide", Action::Hide),
             ("space", "space", Action::Commit(" ".into())),
+            ("emoji", ",", Action::Commit(",".into())),
             ("nonsense", ",", Action::Commit(",".into())),
         ];
         for (id, label, action) in expected {
