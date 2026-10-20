@@ -45,7 +45,7 @@
     <string name="size_keys">Letter keys</string>
     <string name="number_row">Number row</string>
     <string name="size_numbers">Number row height</string>
-    <string name="number_row_hint">Without the number row the digits move to the symbols, and shift and backspace become keys: deleting by sliding and moving the cursor along the row need it.</string>
+    <string name="number_row_hint">Without it the digits move to the symbols, and shift and backspace become keys.</string>
 
     <!-- App language -->
     <string name="app_language">App language</string>
@@ -137,28 +137,28 @@
     <string name="themes_dark">Dark</string>
     <string name="themes_light">Light</string>
     <string name="delete_zones">Zones</string>
-    <string name="autocorrect_info">Off only suggests. Obvious fixes what differs only in capitals, apostrophes and accents, such as im to I\'m or fur to für. All also fixes misspellings. Backspace right after a correction puts back what you typed.</string>
-    <string name="learn_info">Words you type that no dictionary knows are remembered and suggested from then on. Forget deletes all of them.</string>
-    <string name="delete_from_info">The edge of the number row your thumb slides in from to delete. The left edge suits typing with the left hand.</string>
-    <string name="voice_info">On downloads a speech model once and adds dictation to the microphone in the strip. Speech is recognised on the phone and never leaves it. Off deletes the model again.</string>
-    <string name="layout_info">Where space sits: in the bottom row, or among the letters, with a key of your choice left of it.</string>
+    <string name="autocorrect_info">Obvious fixes only capitals, apostrophes and accents (fur → für). All fixes typos too. Backspace right after undoes a fix.</string>
+    <string name="learn_info">Remembers words no dictionary knows and suggests them later.</string>
+    <string name="delete_from_info">The side of the number row you slide in from to delete.</string>
+    <string name="voice_info">Dictation from the microphone in the strip. Runs on the phone; the model downloads once.</string>
+    <string name="layout_info">Space in the bottom row, or among the letters.</string>
     <string name="left_key_info">The key left of space in the middle layout.</string>
-    <string name="edit_keys_info">Adds shift and backspace keys at the ends of the third letter row, besides flicking up for capitals and sliding to delete.</string>
-    <string name="size_all_info">Scales the whole keyboard\'s height.</string>
-    <string name="size_keys_info">Scales the letter keys\' height; the number row keeps its own.</string>
-    <string name="size_numbers_info">The number row\'s height, where slides delete and move the cursor.</string>
+    <string name="edit_keys_info">Shift and backspace as keys at the ends of the third row.</string>
+    <string name="size_all_info">The whole keyboard\'s height.</string>
+    <string name="size_keys_info">The letter keys\' height.</string>
+    <string name="size_numbers_info">The number row\'s height.</string>
     <string name="delete_zone_letters">abc</string>
     <string name="delete_zone_words">words</string>
     <string name="delete_zone_endless">∞</string>
-    <string name="delete_zones_info">Slide in from the edge along the number row. The first zone takes the last few letters one by one, the second takes whole words until the last several are gone, and the third keeps taking words, ever faster, for as long as you stay in it. Sliding back puts the text back. Drag the borders to resize the zones; dragging the last one to the end leaves out the third zone.</string>
-    <string name="delete_letters">Letter by letter through</string>
-    <string name="delete_word_words">Word by word up to</string>
-    <plurals name="last_letters">
-        <item quantity="one">the last letter</item>
-        <item quantity="other">the last %d letters</item>
+    <string name="delete_zones_info">Slide in from the edge: letters one by one, then whole words, then ∞ words ever faster. Slide back to undo. Drag the borders; the last one to the end turns ∞ off.</string>
+    <string name="delete_letters">Letters zone</string>
+    <string name="delete_word_words">Words zone</string>
+    <plurals name="count_letters">
+        <item quantity="one">%d letter</item>
+        <item quantity="other">%d letters</item>
     </plurals>
-    <plurals name="last_words">
-        <item quantity="one">the last word</item>
-        <item quantity="other">the last %d words</item>
+    <plurals name="count_words">
+        <item quantity="one">%d word</item>
+        <item quantity="other">%d words</item>
     </plurals>
 </resources>

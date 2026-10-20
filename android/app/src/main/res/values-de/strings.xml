@@ -44,7 +44,7 @@
     <string name="size_keys">Buchstabentasten</string>
     <string name="number_row">Zahlenreihe</string>
     <string name="size_numbers">Höhe der Zahlenreihe</string>
-    <string name="number_row_hint">Ohne Zahlenreihe wandern die Ziffern zu den Symbolen, und Umschalt- und Rücktaste werden zu Tasten: Löschen durch Ziehen und Cursor-Bewegen entlang der Reihe brauchen sie.</string>
+    <string name="number_row_hint">Ohne sie liegen die Ziffern bei den Symbolen, und Umschalt- und Rücktaste werden Tasten.</string>
 
     <!-- App language -->
     <string name="app_language">App-Sprache</string>
@@ -136,28 +136,28 @@
     <string name="themes_dark">Dunkel</string>
     <string name="themes_light">Hell</string>
     <string name="delete_zones">Bereiche</string>
-    <string name="autocorrect_info">Aus macht nur Vorschläge. Eindeutige korrigiert, was sich nur in Großschreibung, Apostrophen und Akzenten unterscheidet, etwa fur zu für. Alle korrigiert auch Tippfehler. Die Rücktaste direkt nach einer Korrektur holt zurück, was du getippt hast.</string>
-    <string name="learn_info">Wörter, die du tippst und die kein Wörterbuch kennt, werden gemerkt und ab dann vorgeschlagen. Vergessen löscht sie alle.</string>
-    <string name="delete_from_info">Der Rand der Zahlenreihe, von dem aus dein Daumen zum Löschen hineinzieht. Der linke Rand passt zum Tippen mit der linken Hand.</string>
-    <string name="voice_info">An lädt einmalig ein Sprachmodell herunter und macht das Mikrofon in der Leiste zum Diktat. Die Sprache wird auf dem Telefon erkannt und verlässt es nie. Aus löscht das Modell wieder.</string>
-    <string name="layout_info">Wo die Leertaste liegt: in der unteren Reihe oder zwischen den Buchstaben, mit einer Taste deiner Wahl links davon.</string>
+    <string name="autocorrect_info">Eindeutige korrigiert nur Großschreibung, Apostrophe und Akzente (fur → für). Alle auch Tippfehler. Die Rücktaste direkt danach macht es rückgängig.</string>
+    <string name="learn_info">Merkt sich Wörter, die kein Wörterbuch kennt, und schlägt sie später vor.</string>
+    <string name="delete_from_info">Die Seite der Zahlenreihe, von der aus du zum Löschen hineinziehst.</string>
+    <string name="voice_info">Diktat über das Mikrofon in der Leiste. Läuft auf dem Telefon; das Modell wird einmal geladen.</string>
+    <string name="layout_info">Leertaste in der unteren Reihe oder zwischen den Buchstaben.</string>
     <string name="left_key_info">Die Taste links der Leertaste im Layout mit der Leertaste in der Mitte.</string>
-    <string name="edit_keys_info">Fügt Umschalt- und Rücktaste an den Enden der dritten Buchstabenreihe hinzu, neben dem Hochwischen für Großbuchstaben und dem Ziehen zum Löschen.</string>
-    <string name="size_all_info">Skaliert die Höhe der ganzen Tastatur.</string>
-    <string name="size_keys_info">Skaliert die Höhe der Buchstabentasten; die Zahlenreihe behält ihre eigene.</string>
-    <string name="size_numbers_info">Die Höhe der Zahlenreihe, auf der Ziehen löscht und den Cursor bewegt.</string>
+    <string name="edit_keys_info">Umschalt- und Rücktaste als Tasten an den Enden der dritten Reihe.</string>
+    <string name="size_all_info">Die Höhe der ganzen Tastatur.</string>
+    <string name="size_keys_info">Die Höhe der Buchstabentasten.</string>
+    <string name="size_numbers_info">Die Höhe der Zahlenreihe.</string>
     <string name="delete_zone_letters">abc</string>
     <string name="delete_zone_words">Wörter</string>
     <string name="delete_zone_endless">∞</string>
-    <string name="delete_zones_info">Vom Rand aus über die Zahlenreihe ziehen. Der erste Bereich löscht die letzten Buchstaben einzeln, der zweite ganze Wörter, bis die letzten paar weg sind, und der dritte löscht weiter Wörter, immer schneller, solange du darin bleibst. Zurückziehen holt den Text zurück. Ziehe die Grenzen, um die Bereiche zu verändern; die letzte ans Ende gezogen lässt den dritten Bereich weg.</string>
-    <string name="delete_letters">Buchstabe für Buchstabe durch</string>
-    <string name="delete_word_words">Wort für Wort bis</string>
-    <plurals name="last_letters">
-        <item quantity="one">den letzten Buchstaben</item>
-        <item quantity="other">die letzten %d Buchstaben</item>
+    <string name="delete_zones_info">Vom Rand hineinziehen: erst einzelne Buchstaben, dann ganze Wörter, dann ∞ Wörter immer schneller. Zurückziehen macht es rückgängig. Ziehe die Grenzen; die letzte ans Ende schaltet ∞ aus.</string>
+    <string name="delete_letters">Buchstabenbereich</string>
+    <string name="delete_word_words">Wörterbereich</string>
+    <plurals name="count_letters">
+        <item quantity="one">%d Buchstabe</item>
+        <item quantity="other">%d Buchstaben</item>
     </plurals>
-    <plurals name="last_words">
-        <item quantity="one">das letzte Wort</item>
-        <item quantity="other">die letzten %d Wörter</item>
+    <plurals name="count_words">
+        <item quantity="one">%d Wort</item>
+        <item quantity="other">%d Wörter</item>
     </plurals>
 </resources>

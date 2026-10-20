@@ -33,8 +33,8 @@ class LookActivity : LocalizedActivity() {
         column.addView(ui.card(themePicker()))
         column.addView(ui.heading(getString(R.string.size)))
         column.addView(ui.card(
-            ui.slider(getString(R.string.size_all), KeyboardView.SIZE_ALL, KeyboardView.SIZE_RANGE, KeyboardView.SIZE_DEFAULT, info = getString(R.string.size_all_info)) { preview.refresh() },
-            ui.slider(getString(R.string.size_keys), KeyboardView.SIZE_KEYS, KeyboardView.SIZE_RANGE, KeyboardView.SIZE_DEFAULT, info = getString(R.string.size_keys_info)) { preview.refresh() },
+            ui.stepper(getString(R.string.size_all), KeyboardView.SIZE_ALL, KeyboardView.SIZE_RANGE, KeyboardView.SIZE_DEFAULT, info = getString(R.string.size_all_info)) { preview.refresh() },
+            ui.stepper(getString(R.string.size_keys), KeyboardView.SIZE_KEYS, KeyboardView.SIZE_RANGE, KeyboardView.SIZE_DEFAULT, info = getString(R.string.size_keys_info)) { preview.refresh() },
             ui.toggle(getString(R.string.number_row), KeyboardView.NUMBER_ROW, default = true, info = getString(R.string.number_row_hint)) {
                 numberRowHeight.visibility = if (KeyboardView.numberRow(ui.preferences)) View.VISIBLE else View.GONE
                 preview.refresh()
@@ -59,7 +59,7 @@ class LookActivity : LocalizedActivity() {
 
     /** How tall the number row is, offered while there is one. */
     private val numberRowHeight by lazy {
-        ui.slider(getString(R.string.size_numbers), KeyboardView.SIZE_NUMBERS, KeyboardView.SIZE_NUMBERS_RANGE, KeyboardView.SIZE_DEFAULT, info = getString(R.string.size_numbers_info)) {
+        ui.stepper(getString(R.string.size_numbers), KeyboardView.SIZE_NUMBERS, KeyboardView.SIZE_NUMBERS_RANGE, KeyboardView.SIZE_DEFAULT, info = getString(R.string.size_numbers_info)) {
             preview.refresh()
         }.also { it.visibility = if (KeyboardView.numberRow(ui.preferences)) View.VISIBLE else View.GONE }
     }

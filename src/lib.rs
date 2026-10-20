@@ -1238,17 +1238,16 @@ impl Keyboard {
 
     /// Where the words zone and the endless zone start for a delete slide
     /// that starts `start` pixels from its edge, in pixels from that edge;
-    /// the second is the width when there is no endless zone. The letters
-    /// zone is measured from where the slide starts, so the same slide takes
-    /// the same letters wherever on the edge it starts; the endless zone
-    /// stays at the far side, and the words zone takes what lies between,
-    /// at least its least room.
+    /// the second is the width when there is no endless zone. The zones
+    /// share out the way from where the slide starts to the far edge as the
+    /// settings share out the whole width, so all of them shrink alike for a
+    /// slide starting further in.
     fn slide_borders(&self, start: f32) -> (f32, f32) {
         let width = self.layout.width;
         let (words, endless) = self.gestures.delete_borders();
-        let endless = width * endless as f32 / 100.0;
-        let words = (start + width * words as f32 / 100.0).min(endless - width * DELETE_WORDS_ROOM as f32 / 100.0);
-        (words, endless)
+        let way = width - start;
+        let endless = if endless < DELETE_ENDLESS_OFF { start + way * endless as f32 / 100.0 } else { width };
+        (start + way * words as f32 / 100.0, endless)
     }
 
     /// The borders of the delete slide under way, as [`Keyboard::slide_borders`]
@@ -2400,23 +2399,20 @@ mod tests {
     }
 
     #[test]
-    fn the_same_slide_takes_the_same_wherever_on_the_edge_it_starts() {
-        let progress = |start: f32| {
+    fn the_zones_shrink_alike_for_a_slide_starting_further_in() {
+        let borders = |start: f32| {
             let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
             let y = keyboard.layout.numbers_bottom / 2.0;
             keyboard.touch_down(Point { x: 1008.0 - start, y }, 0);
             keyboard.touch_move(Point { x: 1008.0 - start - 100.0, y }, 400);
-            amounts(&keyboard.touch_move(Point { x: 1008.0 - start - 300.0, y }, 500))
+            keyboard.delete_borders()
         };
-        assert_eq!(progress(1.0), progress(150.0), "from the outermost key and from two keys in");
-        // So far in that the letters zone would crowd the endless one, the words zone keeps its least room.
-        let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
-        keyboard.gestures.delete_words_percent = 60;
-        let y = keyboard.layout.numbers_bottom / 2.0;
-        keyboard.touch_down(Point { x: 1008.0 - 330.0, y }, 0);
-        keyboard.touch_move(Point { x: 600.0, y }, 400);
-        let (words, endless) = keyboard.delete_borders();
-        assert!((endless - 907.2).abs() < 1.0 && (endless - words - 100.8).abs() < 1.0, "{words} {endless}");
+        let (words, endless) = borders(0.0);
+        assert!((words - 453.6).abs() < 0.5 && (endless - 907.2).abs() < 0.5, "{words} {endless}");
+        // Two keys in, 288 from the edge: the 720 left are shared out the same way.
+        let (words, endless) = borders(288.0);
+        assert!((words - (288.0 + 0.45 * 720.0)).abs() < 0.5, "{words}");
+        assert!((endless - (288.0 + 0.9 * 720.0)).abs() < 0.5, "{endless}");
     }
 
     #[test]

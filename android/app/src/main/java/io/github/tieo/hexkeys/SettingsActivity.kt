@@ -23,7 +23,6 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import android.widget.SeekBar
 import android.widget.Switch
 import android.widget.TextView
 
@@ -114,13 +113,13 @@ class SettingsActivity : LocalizedActivity() {
             },
             ui.titled(getString(R.string.delete_zones), getString(R.string.delete_zones_info)),
             zones,
-            ui.slider(
+            ui.stepper(
                 getString(R.string.delete_letters), KeyboardView.DELETE_LETTERS, KeyboardView.DELETE_LETTERS_RANGE,
-                KeyboardView.DELETE_LETTERS_DEFAULT, step = 1, describe = { resources.getQuantityString(R.plurals.last_letters, it, it) },
+                KeyboardView.DELETE_LETTERS_DEFAULT, step = 1, describe = { resources.getQuantityString(R.plurals.count_letters, it, it) },
             ),
-            ui.slider(
+            ui.stepper(
                 getString(R.string.delete_word_words), KeyboardView.DELETE_WORD_WORDS, KeyboardView.DELETE_WORD_WORDS_RANGE,
-                KeyboardView.DELETE_WORD_WORDS_DEFAULT, step = 1, describe = { resources.getQuantityString(R.plurals.last_words, it, it) },
+                KeyboardView.DELETE_WORD_WORDS_DEFAULT, step = 1, describe = { resources.getQuantityString(R.plurals.count_words, it, it) },
             ),
         ))
 
@@ -291,6 +290,12 @@ class SettingsActivity : LocalizedActivity() {
  * accent colour where Android has one.
  */
 class Ui(private val activity: Activity) {
+    private companion object {
+        /** How long a stepper's button is held before it steps on by itself, and the pause between those steps, in ms. */
+        const val STEPPER_HOLD_MS = 400L
+        const val STEPPER_REPEAT_MS = 90L
+    }
+
     private val density = activity.resources.displayMetrics.density
     fun dp(value: Int) = (value * density).toInt()
 
@@ -343,18 +348,18 @@ class Ui(private val activity: Activity) {
     }
 
     /** A [heading] with an [info] button right after it. */
-    fun heading(text: String, info: String): View = withInfo(heading(text), info)
+    fun heading(text: String, info: String): View = withInfo(heading(text), info, text)
 
     /** A [label] with an [info] button right after it. */
-    fun titled(text: String, info: String): View = withInfo(label(text), info)
+    fun titled(text: String, info: String): View = withInfo(label(text), info, text)
 
     /** `title` and an [info] button on one line, the title's padding moved to the row so both centre on it. */
-    private fun withInfo(title: TextView, info: String) = LinearLayout(activity).apply {
+    private fun withInfo(title: TextView, info: String, name: String) = LinearLayout(activity).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         setPadding(title.paddingLeft, title.paddingTop, 0, title.paddingBottom)
         addView(title.apply { setPadding(0, 0, 0, 0) })
-        addView(info(info))
+        addView(info(info, name))
     }
 
     fun label(text: String) = TextView(activity).apply {
@@ -396,13 +401,13 @@ class Ui(private val activity: Activity) {
                 setTextColor(this@Ui.text)
                 textSize = 17f
             })
-            addView(info(info))
+            addView(info(info, label))
             addView(View(activity), LinearLayout.LayoutParams(0, 0, 1f))
             addView(toggle("", key, default, changed).apply { contentDescription = label })
         }
 
     /** A small i that shows `text` when tapped, for what a setting does that its controls cannot show. */
-    fun info(text: String) = ImageView(activity).apply {
+    fun info(text: String, title: String? = null) = ImageView(activity).apply {
         setImageResource(R.drawable.icon_info)
         imageTintList = ColorStateList.valueOf(secondaryText)
         contentDescription = activity.getString(R.string.info)
@@ -410,7 +415,7 @@ class Ui(private val activity: Activity) {
         setPadding(pad, pad, pad, pad)
         layoutParams = LinearLayout.LayoutParams(dp(40), dp(40))
         setOnClickListener {
-            AlertDialog.Builder(activity).setMessage(text).setPositiveButton(android.R.string.ok, null).show()
+            AlertDialog.Builder(activity).setTitle(title).setMessage(text).setPositiveButton(android.R.string.ok, null).show()
         }
     }
 
@@ -510,10 +515,11 @@ class Ui(private val activity: Activity) {
     }
 
     /**
-     * A number between the ends of `range` in steps, kept under `key` once the
-     * finger lifts; `describe` says what a value reads as beside the label.
+     * A number between the ends of `range` in steps of `step`, kept under
+     * `key`: minus and plus around the value as `describe` writes it, each
+     * a step per tap and steps on and on while held.
      */
-    fun slider(
+    fun stepper(
         title: String,
         key: String,
         range: IntRange,
@@ -523,49 +529,70 @@ class Ui(private val activity: Activity) {
         info: String? = null,
         changed: () -> Unit = {},
     ): View {
+        var current = preferences.getInt(key, default).coerceIn(range)
         val value = TextView(activity).apply {
-            textSize = 15f
+            textSize = 16f
+            setTextColor(this@Ui.text)
+            gravity = Gravity.CENTER
+            minWidth = dp(72)
+        }
+        val buttons = mutableListOf<Pair<TextView, Int>>()
+        fun show() {
+            value.text = describe(current)
+            // A button at its end of the range recedes.
+            for ((button, delta) in buttons) button.alpha = if (current + delta in range) 1f else 0.3f
+        }
+        fun button(glyph: String, delta: Int) = TextView(activity).apply {
+            text = glyph
+            textSize = 22f
             setTextColor(accent)
-        }
-        val bar = SeekBar(activity).apply {
-            max = (range.last - range.first) / step
-            progress = (preferences.getInt(key, default).coerceIn(range) - range.first) / step
-            progressTintList = ColorStateList.valueOf(accent)
-            thumbTintList = ColorStateList.valueOf(accent)
-        }
-        fun now() = range.first + bar.progress * step
-        value.text = describe(now())
-        bar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
-                value.text = describe(now())
-                // Kept as it moves, so what shows the setting follows the finger.
-                if (fromUser) {
-                    preferences.edit().putInt(key, now()).apply()
+            gravity = Gravity.CENTER
+            val repeat = object : Runnable {
+                override fun run() {
+                    val next = (current + delta).coerceIn(range)
+                    if (next == current) return
+                    current = next
+                    preferences.edit().putInt(key, current).apply()
+                    show()
                     changed()
+                    postDelayed(this, STEPPER_REPEAT_MS)
                 }
             }
-
-            override fun onStartTrackingTouch(bar: SeekBar) {}
-
-            override fun onStopTrackingTouch(bar: SeekBar) {
-                preferences.edit().putInt(key, now()).apply()
-                changed()
+            @android.annotation.SuppressLint("ClickableViewAccessibility")
+            setOnTouchListener { view, event ->
+                when (event.actionMasked) {
+                    android.view.MotionEvent.ACTION_DOWN -> {
+                        view.isPressed = true
+                        repeat.run()
+                        view.removeCallbacks(repeat)
+                        view.postDelayed(repeat, STEPPER_HOLD_MS)
+                    }
+                    android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                        view.isPressed = false
+                        view.removeCallbacks(repeat)
+                    }
+                }
+                true
             }
-        })
+        }.also { buttons += it to delta }
+        val pill = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = rounded(idleColor, 20)
+            addView(button("−", -step), LinearLayout.LayoutParams(dp(48), dp(44)))
+            addView(value)
+            addView(button("+", step), LinearLayout.LayoutParams(dp(48), dp(44)))
+        }
+        show()
         return LinearLayout(activity).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(LinearLayout(activity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                if (info == null) {
-                    addView(label(title), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-                } else {
-                    addView(titled(title, info))
-                    addView(View(activity), LinearLayout.LayoutParams(0, 0, 1f))
-                }
-                addView(value)
-            })
-            addView(bar)
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(6), 0, dp(6))
+            val name = if (info == null) label(title) else titled(title, info)
+            // The row's padding stands for the title's own.
+            name.setPadding(0, 0, 0, 0)
+            addView(name, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(pill)
         }
     }
 
