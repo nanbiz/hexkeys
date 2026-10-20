@@ -66,7 +66,7 @@ Everything is under the keyboard's settings, which open from the app icon or the
 | Autocorrect | Off, Obvious, All (default) |
 | Learn new words | Off (default), on; Forget deletes what was learned |
 | Delete by sliding in from | Left edge, right edge (default) |
-| Zones | Where the delete slide's letters, words and endless zones begin, dragged on a picture of the number row (words from 45%, endless from 90% of the width); dragging the last border to the end leaves out the endless zone |
+| Zones | Where the delete slide's letters, words and endless zones begin, dragged on a picture of the number row (words from 45%, endless from 80% of the width); dragging the last border to the end leaves out the endless zone |
 | Letters zone | The last 3 to 30 letters (20) |
 | Words zone | The last 2 to 30 words (10) |
 | Voice | Off (default), or On, which downloads the speech model once (670 MB) |
@@ -77,7 +77,7 @@ Everything is under the keyboard's settings, which open from the app icon or the
 | Whole keyboard | 70% to 130% of the height (100%) |
 | Letter keys | 70% to 130% (100%) |
 | Number row | On (default), off; without it the digits are on the symbols and deleting by sliding and the cursor slide along the row are gone, so the shift and backspace keys are there instead; the emoji search needs it too |
-| Number row height | 50% to 150% (100%) |
+| Number row height | 50% to 150% (85%) |
 | Languages | The dictionaries to suggest in; ticking one downloads it |
 
 In landscape the suggestion strip and the number row are left out to give the app room, and shift and backspace are keys.

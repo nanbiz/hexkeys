@@ -66,7 +66,7 @@ Alles findest du in den Einstellungen der Tastatur, die sich über das App-Symbo
 | Autokorrektur | Aus, Eindeutige, Alle (Standard) |
 | Neue Wörter lernen | Aus (Standard), an; Vergessen löscht das Gelernte |
 | Löschen durch Ziehen von | Linker Rand, rechter Rand (Standard) |
-| Bereiche | Wo die Bereiche für Buchstaben, Wörter und das endlose Löschen beginnen, gezogen auf einem Bild der Zahlenreihe (Wörter ab 45 %, endlos ab 90 % der Breite); die letzte Grenze ans Ende gezogen lässt den endlosen Bereich weg |
+| Bereiche | Wo die Bereiche für Buchstaben, Wörter und das endlose Löschen beginnen, gezogen auf einem Bild der Zahlenreihe (Wörter ab 45 %, endlos ab 80 % der Breite); die letzte Grenze ans Ende gezogen lässt den endlosen Bereich weg |
 | Buchstabenbereich | Die letzten 3 bis 30 Buchstaben (20) |
 | Wörterbereich | Die letzten 2 bis 30 Wörter (10) |
 | Spracheingabe | Aus (Standard), oder An, was das Sprachmodell einmalig herunterlädt (670 MB) |
@@ -77,7 +77,7 @@ Alles findest du in den Einstellungen der Tastatur, die sich über das App-Symbo
 | Ganze Tastatur | 70 % bis 130 % der Höhe (100 %) |
 | Buchstabentasten | 70 % bis 130 % (100 %) |
 | Zahlenreihe | An (Standard), aus; ohne sie liegen die Ziffern bei den Symbolen, und Löschen durch Ziehen und Cursor-Bewegen entlang der Reihe entfallen, daher sind stattdessen die Umschalt- und Rücktaste vorhanden; die Emoji-Suche braucht sie ebenfalls |
-| Höhe der Zahlenreihe | 50 % bis 150 % (100 %) |
+| Höhe der Zahlenreihe | 50 % bis 150 % (85 %) |
 | Sprachen | Die Wörterbücher, in denen vorgeschlagen wird; Ankreuzen lädt eines herunter |
 
 Im Querformat entfallen die Vorschlagsleiste und die Zahlenreihe, damit die App Platz hat, und Umschalt- und Rücktaste sind Tasten.

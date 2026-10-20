@@ -1280,7 +1280,7 @@ class KeyboardView(
         const val DELETE_WORDS_DEFAULT = 45
         const val DELETE_WORDS_LEAST = 10
         const val DELETE_ENDLESS = "delete_endless_percent"
-        const val DELETE_ENDLESS_DEFAULT = 90
+        const val DELETE_ENDLESS_DEFAULT = 80
         const val DELETE_WORDS_ROOM = 10
         const val DELETE_ENDLESS_OFF = 100
 
@@ -1309,6 +1309,7 @@ class KeyboardView(
         val SIZE_RANGE = 70..130
         val SIZE_NUMBERS_RANGE = 50..150
         const val SIZE_DEFAULT = 100
+        const val SIZE_NUMBERS_DEFAULT = 85
 
         fun numberRow(preferences: android.content.SharedPreferences) = preferences.getBoolean(NUMBER_ROW, true)
 
@@ -1318,10 +1319,10 @@ class KeyboardView(
          * is as tall as its own size says, whatever the letter keys are set to.
          */
         fun sizes(preferences: android.content.SharedPreferences): Pair<Float, Float> {
-            fun percent(key: String, range: IntRange) = preferences.getInt(key, SIZE_DEFAULT).coerceIn(range) / 100f
+            fun percent(key: String, range: IntRange, default: Int = SIZE_DEFAULT) = preferences.getInt(key, default).coerceIn(range) / 100f
             val all = percent(SIZE_ALL, SIZE_RANGE)
             val keys = percent(SIZE_KEYS, SIZE_RANGE)
-            return all * keys to percent(SIZE_NUMBERS, SIZE_NUMBERS_RANGE) / keys
+            return all * keys to percent(SIZE_NUMBERS, SIZE_NUMBERS_RANGE, SIZE_NUMBERS_DEFAULT) / keys
         }
 
         /** Preference adding shift and backspace keys to the layout. */

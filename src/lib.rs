@@ -924,7 +924,7 @@ pub const DELETE_WORDS_LEAST: u32 = 10;
 
 /// Where the words zone ends and the endless zone starts, as a percent of
 /// the width from the edge, when the settings say nothing.
-pub const DELETE_ENDLESS_PERCENT: u32 = 90;
+pub const DELETE_ENDLESS_PERCENT: u32 = 80;
 
 /// The least room the words zone keeps, in percent of the width.
 pub const DELETE_WORDS_ROOM: u32 = 10;
@@ -2331,13 +2331,13 @@ mod tests {
         let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
         slide_to(&mut keyboard, &[(900.0, 100), (700.0, 400)]);
         let y = keyboard.layout.numbers_bottom / 2.0;
-        // The words zone runs from 454 to 907 from the edge.
-        let (letters, words, endless) = amounts(&keyboard.touch_move(Point { x: 1008.0 - 680.0, y }, 500));
+        // The words zone runs from 454 to 806 from the edge.
+        let (letters, words, endless) = amounts(&keyboard.touch_move(Point { x: 1008.0 - 630.0, y }, 500));
         assert_eq!((letters, endless), (1000, 0));
         assert!((words as i32 - 500).abs() <= 6, "{words}");
         assert_eq!(keyboard.deleting().map(|(_, _, zone)| zone), Some(1));
         assert_eq!(keyboard.deadline(), None, "resting here takes nothing more");
-        let (_, back, _) = amounts(&keyboard.touch_move(Point { x: 1008.0 - 560.0, y }, 600));
+        let (_, back, _) = amounts(&keyboard.touch_move(Point { x: 1008.0 - 530.0, y }, 600));
         assert!(back < words, "sliding back puts words back: {back} against {words}");
     }
 
@@ -2408,11 +2408,11 @@ mod tests {
             keyboard.delete_borders()
         };
         let (words, endless) = borders(0.0);
-        assert!((words - 453.6).abs() < 0.5 && (endless - 907.2).abs() < 0.5, "{words} {endless}");
+        assert!((words - 453.6).abs() < 0.5 && (endless - 806.4).abs() < 0.5, "{words} {endless}");
         // Two keys in, 288 from the edge: the 720 left are shared out the same way.
         let (words, endless) = borders(288.0);
         assert!((words - (288.0 + 0.45 * 720.0)).abs() < 0.5, "{words}");
-        assert!((endless - (288.0 + 0.9 * 720.0)).abs() < 0.5, "{endless}");
+        assert!((endless - (288.0 + 0.8 * 720.0)).abs() < 0.5, "{endless}");
     }
 
     #[test]
