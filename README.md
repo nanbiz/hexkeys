@@ -67,8 +67,8 @@ Everything is under the keyboard's settings, which open from the app icon or the
 | Learn new words | Off (default), on; Forget deletes what was learned |
 | Delete by sliding in from | Left edge, right edge (default) |
 | Zones | Where the delete slide's letters, words and endless zones begin, dragged on a picture of the number row (words from 45%, endless from 90% of the width); dragging the last border to the end leaves out the endless zone |
-| Letter by letter through | The last 3 to 30 letters (10) |
-| Word by word up to | The last 2 to 30 words (10) |
+| Letters zone | The last 3 to 30 letters (20) |
+| Words zone | The last 2 to 30 words (10) |
 | Voice | Off (default), or On, which downloads the speech model once (670 MB) |
 | Layout | Space in the middle (default), space at the bottom |
 | Key left of space | Comma (default), backspace, second space; only in the middle layout |

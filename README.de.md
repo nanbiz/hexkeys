@@ -67,8 +67,8 @@ Alles findest du in den Einstellungen der Tastatur, die sich über das App-Symbo
 | Neue Wörter lernen | Aus (Standard), an; Vergessen löscht das Gelernte |
 | Löschen durch Ziehen von | Linker Rand, rechter Rand (Standard) |
 | Bereiche | Wo die Bereiche für Buchstaben, Wörter und das endlose Löschen beginnen, gezogen auf einem Bild der Zahlenreihe (Wörter ab 45 %, endlos ab 90 % der Breite); die letzte Grenze ans Ende gezogen lässt den endlosen Bereich weg |
-| Buchstabe für Buchstabe durch | Die letzten 3 bis 30 Buchstaben (10) |
-| Wort für Wort bis | Die letzten 2 bis 30 Wörter (10) |
+| Buchstabenbereich | Die letzten 3 bis 30 Buchstaben (20) |
+| Wörterbereich | Die letzten 2 bis 30 Wörter (10) |
 | Spracheingabe | Aus (Standard), oder An, was das Sprachmodell einmalig herunterlädt (670 MB) |
 | Layout | Leertaste in der Mitte (Standard), Leertaste unten |
 | Taste links der Leertaste | Komma (Standard), Rücktaste, zweite Leertaste; nur im Layout mit der Leertaste in der Mitte |

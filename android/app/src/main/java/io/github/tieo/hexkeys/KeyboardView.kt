@@ -1289,7 +1289,7 @@ class KeyboardView(
          * words the slide has deleted by the words zone's far end.
          */
         const val DELETE_LETTERS = "delete_letters"
-        const val DELETE_LETTERS_DEFAULT = 10
+        const val DELETE_LETTERS_DEFAULT = 20
         val DELETE_LETTERS_RANGE = 3..30
         const val DELETE_WORD_WORDS = "delete_word_words"
         const val DELETE_WORD_WORDS_DEFAULT = 10
