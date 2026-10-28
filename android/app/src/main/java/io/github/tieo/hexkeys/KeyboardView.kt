@@ -310,6 +310,23 @@ class KeyboardView(
      * screen, with the heights that place it, so a keyboard sitting too low
      * on the phone shows in the log with what it was laid out for.
      */
+    /** The keys built last that the learned taps were handed to. */
+    private var tapsFor: String? = null
+
+    /** Hands the core where taps land, as kept, and whether it learns. */
+    fun loadTaps() {
+        if (handle == 0L) return
+        val preferences = Dictionaries.preferences(context)
+        Core.setTaps(handle, preferences.getFloat(TAP_X, 0f), preferences.getFloat(TAP_Y, 0f), preferences.getBoolean(TAP_LEARNING, true))
+    }
+
+    /** Keeps where taps land, as the core has learned it so far. */
+    fun saveTaps() {
+        if (handle == 0L) return
+        val (x, y) = Core.taps(handle).let { it[0] to it[1] }
+        Dictionaries.preferences(context).edit().putFloat(TAP_X, x).putFloat(TAP_Y, y).apply()
+    }
+
     fun logPlacement(event: String) {
         if (!logging) return
         val location = IntArray(2)
@@ -431,7 +448,10 @@ class KeyboardView(
         // key's, and the keys flatten to fit [LANDSCAPE_KEYS] of the height and the strip's.
         val shape = "$width/$spaceMiddle/$leftKey/$editKeys/$landscape/$numberRow/${sizes.first}/${sizes.second}"
         if (handle == 0L || shape != builtFor) {
-            if (handle != 0L) Core.destroy(handle)
+            if (handle != 0L) {
+                saveTaps()
+                Core.destroy(handle)
+            }
             stretch = STRETCH
             if (landscape) {
                 val regular = Core.create(width.toFloat(), STRETCH, 1f, 0, spaceMiddle, leftKey, editKeys, true)
@@ -453,6 +473,10 @@ class KeyboardView(
             headroom = Core.headroom(handle).toInt()
             Core.setStrip(handle, stripHeight.toFloat())
             loadOutlines()
+        }
+        if (builtFor != tapsFor) {
+            loadTaps()
+            tapsFor = builtFor
         }
         Core.configure(
             handle, preferences.getBoolean(DELETE_FROM_LEFT, false),
@@ -1265,6 +1289,17 @@ class KeyboardView(
         const val LEFT_KEY = "left_key"
         const val DEFAULT_LEFT_KEY = "comma"
         val LEFT_KEYS = listOf("comma", "backspace", "space")
+
+        /**
+         * Preferences: whether the keyboard learns where taps land and shifts them by it,
+         * and where they land, in key widths across and down from the keys' centres.
+         */
+        const val TAP_LEARNING = "tap_learning"
+
+        /** Cells across a row of letters, in both layouts. */
+        const val CELLS_ACROSS = 7
+        const val TAP_X = "tap_x"
+        const val TAP_Y = "tap_y"
 
         /** Preference: delete swipes come in from the left edge. */
         const val DELETE_FROM_LEFT = "delete_from_left"

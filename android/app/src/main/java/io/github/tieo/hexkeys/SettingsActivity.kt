@@ -95,6 +95,10 @@ class SettingsActivity : LocalizedActivity() {
                 Dictionaries.autocorrectMode(this),
             ) { id -> ui.preferences.edit().putString(Dictionaries.AUTOCORRECT_MODE, id).apply() },
             learningRow(),
+            ui.toggle(getString(R.string.tap_learning), KeyboardView.TAP_LEARNING, default = true, info = getString(R.string.tap_learning_info)) {
+                tapSpot.visibility = if (ui.preferences.getBoolean(KeyboardView.TAP_LEARNING, true)) View.VISIBLE else View.GONE
+            },
+            tapSpot,
             ui.navigationRow(getString(R.string.languages), languages) {
                 startActivity(Intent(this, LanguagesActivity::class.java))
             },
@@ -182,6 +186,7 @@ class SettingsActivity : LocalizedActivity() {
 
     override fun onResume() {
         super.onResume()
+        tapSpot.refresh()
         // Coming back from the system settings: show only the step still missing.
         val manager = getSystemService(InputMethodManager::class.java)
         val enabled = manager.enabledInputMethodList.any { it.packageName == packageName }
@@ -212,6 +217,11 @@ class SettingsActivity : LocalizedActivity() {
     /** Switches speech input on, for the microphone button arriving with it off. */
     private var startDefault: () -> Unit = {}
     private lateinit var lookSummary: TextView
+
+    /** Where taps land, as the keyboard learned it, shown while it learns. */
+    private val tapSpot by lazy {
+        TapSpot(this, ui).also { it.visibility = if (ui.preferences.getBoolean(KeyboardView.TAP_LEARNING, true)) View.VISIBLE else View.GONE }
+    }
 
     /**
      * Speech input off or on, its model's download progress while it
@@ -609,6 +619,74 @@ class Ui(private val activity: Activity) {
  * A strip of the keyboard in a theme's colours: one hexagon per QWERTZ row
  * colour and one in the colour of the other keys, on the theme's background.
  */
+/**
+ * Where taps land against the keys, as the keyboard learned it: a key with
+ * its centre marked and a dot where taps land on average, to scale, beside
+ * how far that is in millimetres on this screen.
+ */
+private class TapSpot(context: Context, private val ui: Ui) : LinearLayout(context) {
+    private val drawing = object : View(context) {
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        override fun onDraw(canvas: Canvas) {
+            val (x, y) = offset()
+            val cx = width / 2f
+            val cy = height / 2f
+            // A key as tall as the drawing, a hexagon standing on a corner as the keys do.
+            val radius = height / 2f
+            val hexagon = Path()
+            for (corner in 0 until 6) {
+                val angle = Math.toRadians(60.0 * corner - 90)
+                val px = cx + radius * Math.cos(angle).toFloat()
+                val py = cy + radius * Math.sin(angle).toFloat()
+                if (corner == 0) hexagon.moveTo(px, py) else hexagon.lineTo(px, py)
+            }
+            hexagon.close()
+            paint.style = Paint.Style.FILL
+            paint.color = 0x1FFFFFFF
+            canvas.drawPath(hexagon, paint)
+            paint.color = ui.secondaryText
+            paint.strokeWidth = ui.dp(1).toFloat()
+            val arm = ui.dp(5).toFloat()
+            canvas.drawLine(cx - arm, cy, cx + arm, cy, paint)
+            canvas.drawLine(cx, cy - arm, cx, cy + arm, paint)
+            // A key is as wide as the hexagon across its flat sides.
+            val keyWidth = radius * Math.sqrt(3.0).toFloat()
+            paint.color = ui.accent
+            canvas.drawCircle(cx + x * keyWidth, cy + y * keyWidth, ui.dp(4).toFloat(), paint)
+        }
+    }
+    private val value = TextView(context).apply {
+        textSize = 15f
+        setTextColor(ui.text)
+    }
+
+    init {
+        orientation = HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(0, ui.dp(4), 0, ui.dp(8))
+        addView(drawing, LayoutParams(ui.dp(72), ui.dp(72)))
+        addView(value, LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = ui.dp(16) })
+        refresh()
+    }
+
+    private fun offset() = ui.preferences.getFloat(KeyboardView.TAP_X, 0f) to ui.preferences.getFloat(KeyboardView.TAP_Y, 0f)
+
+    /** Shows the offset as kept now. */
+    fun refresh() {
+        val (x, y) = offset()
+        // A key on this screen: the width shared by the cells across a row.
+        val metrics = resources.displayMetrics
+        val keyMm = metrics.widthPixels / KeyboardView.CELLS_ACROSS / metrics.xdpi * 25.4f
+        fun mm(keyWidths: Float) = String.format(java.util.Locale.getDefault(), "%.1f", kotlin.math.abs(keyWidths) * keyMm)
+        val parts = listOfNotNull(
+            if (kotlin.math.abs(y * keyMm) >= 0.05f) context.getString(if (y < 0) R.string.tap_higher else R.string.tap_lower, mm(y)) else null,
+            if (kotlin.math.abs(x * keyMm) >= 0.05f) context.getString(if (x < 0) R.string.tap_left else R.string.tap_right, mm(x)) else null,
+        )
+        value.text = if (parts.isEmpty()) context.getString(R.string.tap_centre) else parts.joinToString("\n")
+        drawing.invalidate()
+    }
+}
+
 /**
  * The number row as a delete slide crosses it, from the edge it comes in
  * from: the letters, words and endless zones in the colours the keyboard

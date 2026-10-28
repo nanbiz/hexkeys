@@ -81,6 +81,10 @@ class HexInputMethod : InputMethodService() {
                 emojiSearch = null
             }
             Theme.KEY -> keyboard?.theme = Theme.current(this)
+            KeyboardView.TAP_LEARNING -> keyboard?.let {
+                it.saveTaps()
+                it.loadTaps()
+            }
             KeyboardView.LAYOUT, KeyboardView.LEFT_KEY, KeyboardView.DELETE_FROM_LEFT, KeyboardView.DELETE_WORDS, KeyboardView.DELETE_ENDLESS, KeyboardView.EDIT_KEYS,
             KeyboardView.SIZE_ALL, KeyboardView.SIZE_KEYS, KeyboardView.SIZE_NUMBERS, KeyboardView.NUMBER_ROW ->
                 keyboard?.requestLayout()
@@ -745,6 +749,7 @@ class HexInputMethod : InputMethodService() {
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
+        keyboard?.saveTaps()
         // Hidden, the keyboard stops listening; what was said is still put in.
         voice.stop()
         // A language picked by hand holds for the field it was picked in.

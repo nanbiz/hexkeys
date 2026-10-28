@@ -161,4 +161,11 @@
         <item quantity="one">%d word</item>
         <item quantity="other">%d words</item>
     </plurals>
+    <string name="tap_learning">Learn where I tap</string>
+    <string name="tap_learning_info">The keyboard learns where your taps land on the keys and lets each key answer there. The dot shows where they land against a key\'s centre.</string>
+    <string name="tap_higher">%s mm higher</string>
+    <string name="tap_lower">%s mm lower</string>
+    <string name="tap_left">%s mm left</string>
+    <string name="tap_right">%s mm right</string>
+    <string name="tap_centre">On the centre</string>
 </resources>

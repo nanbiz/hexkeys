@@ -81,6 +81,10 @@ object Core {
      */
     external fun configure(handle: Long, deleteFromLeft: Boolean, deleteWordsPercent: Int, deleteEndlessPercent: Int)
 
+    /** Where taps land against the keys, in key widths across and down, and whether the keyboard learns it and shifts taps by it. */
+    external fun setTaps(handle: Long, x: Float, y: Float, learning: Boolean)
+    external fun taps(handle: Long): FloatArray
+
     /** Where the words and the endless zones start, in pixels from the delete edge; the second is the width when there is none. */
     external fun deleteBorders(handle: Long): FloatArray
 

@@ -636,6 +636,21 @@ pub extern "system" fn Java_io_github_tieo_hexkeys_Core_configure(
     gestures.delete_endless_percent = u32::try_from(delete_endless_percent).unwrap_or(hexkeys::DELETE_ENDLESS_PERCENT);
 }
 
+/// Where taps land against the keys, as the keyboard learned it, in key
+/// widths across and down, and whether it goes on learning and shifts taps
+/// by it.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_io_github_tieo_hexkeys_Core_setTaps(_env: JNIEnv, _class: JClass, handle: jlong, x: jfloat, y: jfloat, learning: jboolean) {
+    keyboard(handle).taps = hexkeys::Taps { offset: Point { x, y }, learning: learning != 0 };
+}
+
+/// What [`Java_io_github_tieo_hexkeys_Core_setTaps`] sets, as learned so far: the offset across and down.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_io_github_tieo_hexkeys_Core_taps(env: JNIEnv, _class: JClass, handle: jlong) -> jfloatArray {
+    let offset = keyboard(handle).taps.offset;
+    floats(&env, &[offset.x, offset.y])
+}
+
 /// Where a delete slide's words zone and its endless zone start, in pixels
 /// from the edge it comes in from; the second is the width when there is no
 /// endless zone.

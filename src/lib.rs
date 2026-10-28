@@ -1128,7 +1128,41 @@ pub struct Keyboard {
     /// How tall what lies between the keys and the headroom is, the
     /// suggestion strip, which a popup can reach over.
     pub strip: f32,
+    /// Where taps land against the keys, learned from them.
+    pub taps: Taps,
 }
+
+/// Where a finger's taps land against the centres of the keys they type,
+/// on average, in key widths: below 0 is left of or above the centre.
+/// Touches are taken that much the other way before finding their key, so
+/// the keys answer where the finger really lands. While `learning`, every
+/// letter tapped moves the average a little; otherwise nothing is shifted.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Taps {
+    pub offset: Point,
+    pub learning: bool,
+}
+
+impl Default for Taps {
+    fn default() -> Self {
+        Self { offset: Point { x: 0.0, y: 0.0 }, learning: true }
+    }
+}
+
+/// How much one tap moves the learned average: about the last fifty taps count.
+const TAP_LEARNING: f32 = 0.02;
+
+/// The farthest the learned average may lie from a key's centre, and the
+/// farthest a tap may land from its key's centre to count, in key widths:
+/// taps beyond are taken as aimed at another key.
+const TAP_OFFSET_MOST: f32 = 0.3;
+const TAP_COUNTS_WITHIN: f32 = 0.6;
+
+/// A stroke from a letter at most this long, in key widths, and this quick,
+/// in ms, is a tap whose finger drifted, not a swipe: the shortest quickest
+/// swipes the phone's log kept were longer or slower.
+const DRIFT_REACH: f32 = 1.15;
+const DRIFT_MS: u64 = 90;
 
 impl Keyboard {
     /// A keyboard with `letters` as its letter layer.
@@ -1151,7 +1185,34 @@ impl Keyboard {
             gestures: Gestures::default(),
             accents: Default::default(),
             strip: 0.0,
+            taps: Taps::default(),
         }
+    }
+
+    /// Where a touch counts as being, after the learned offset of taps.
+    fn aimed(&self, at: Point) -> Point {
+        if !self.taps.learning {
+            return at;
+        }
+        let w = self.layout.cell_width;
+        Point { x: at.x - self.taps.offset.x * w, y: at.y - self.taps.offset.y * w }
+    }
+
+    /// Moves the learned offset towards where a tap on `key` landed.
+    fn learn_tap(&mut self, key: usize, at: Point) {
+        if !self.taps.learning {
+            return;
+        }
+        let w = self.layout.cell_width;
+        let aimed = self.aimed(at);
+        let Some(centre) = self.layout.keys[key].cells.iter().copied().min_by(|a, b| distance(*a, aimed).total_cmp(&distance(*b, aimed))) else { return };
+        let (dx, dy) = ((at.x - centre.x) / w, (at.y - centre.y) / w);
+        if dx.hypot(dy) > TAP_COUNTS_WITHIN {
+            return;
+        }
+        let offset = &mut self.taps.offset;
+        offset.x = (offset.x + (dx - offset.x) * TAP_LEARNING).clamp(-TAP_OFFSET_MOST, TAP_OFFSET_MOST);
+        offset.y = (offset.y + (dy - offset.y) * TAP_LEARNING).clamp(-TAP_OFFSET_MOST, TAP_OFFSET_MOST);
     }
 
     /// How far inwards from the delete edge a point is, relative to where
@@ -1196,6 +1257,8 @@ impl Keyboard {
             Some(if dy < 0.0 { Gesture::Up } else { Gesture::Down })
         } else if dx.abs() > 1.4 * dy.abs() && touch.at_edge && self.inwards(touch, touch.at) > 0.0 {
             Some(Gesture::QuickDelete)
+        } else if touch.extent <= DRIFT_REACH * w && touch.last_time - touch.start_time <= DRIFT_MS && self.on_letters(&self.layout.keys[touch.key].label) {
+            Some(Gesture::Tap)
         } else {
             None
         }
@@ -1335,7 +1398,7 @@ impl Keyboard {
     pub fn touch_down(&mut self, at: Point, time: u64) {
         self.popup = None;
         let at_edge = self.in_delete_zone(at);
-        self.touch = self.key_at(at).map(|key| Touch {
+        self.touch = self.key_at(self.aimed(at)).map(|key| Touch {
             key,
             start: at,
             at,
@@ -1470,7 +1533,12 @@ impl Keyboard {
             }
             Gesture::Delete => moved,
             Gesture::QuickDelete => Action::Backspace,
-            Gesture::Tap => self.press(touch.key),
+            Gesture::Tap => {
+                if self.on_letters(&label) {
+                    self.learn_tap(touch.key, touch.start);
+                }
+                self.press(touch.key)
+            }
             // A flick sideways on space steps through the languages.
             Gesture::Sideways => {
                 Action::Language { forward: touch.at.x > touch.start.x }
@@ -2414,6 +2482,42 @@ mod tests {
         let (words, endless) = borders(288.0);
         assert!((words - (288.0 + 0.45 * 720.0)).abs() < 0.5, "{words}");
         assert!((endless - (288.0 + 0.8 * 720.0)).abs() < 0.5, "{endless}");
+    }
+
+    #[test]
+    fn taps_landing_high_teach_the_keys_to_answer_lower() {
+        let mut keyboard = Keyboard::new(space_middle(), 1008.0, 1.0, 400);
+        // Taps on e land almost a third of a key above its centre, again and again.
+        for i in 0..300 {
+            let e = near(&keyboard, "e", 0.0, -0.3);
+            keyboard.touch_down(e, 1000 * i);
+            keyboard.touch_up(e, 1000 * i + 50);
+        }
+        assert!((keyboard.taps.offset.y + 0.3).abs() < 0.02, "{:?}", keyboard.taps.offset);
+        // A tap that high above a, below w, now types a.
+        let a = near(&keyboard, "a", 0.0, -0.62);
+        assert_eq!(keyboard.layout.key_at(a).map(|key| key.label.as_str()), Some("w"), "where it lands is w");
+        keyboard.touch_down(a, 500_000);
+        assert_eq!(keyboard.touch_up(a, 500_050), Action::Commit("a".into()));
+        // Not learning, nothing is shifted.
+        keyboard.taps.learning = false;
+        keyboard.touch_down(a, 600_000);
+        assert_eq!(keyboard.touch_up(a, 600_050), Action::Commit("w".into()));
+    }
+
+    #[test]
+    fn a_tap_drifting_a_key_sideways_in_a_flash_types_its_key() {
+        let mut keyboard = Keyboard::new(space_middle(), 1008.0, 1.0, 400);
+        let w = keyboard.layout.cell_width;
+        // As o in the phone's log: 1.1 key widths left in 80 ms.
+        let o = near(&keyboard, "o", 0.0, 0.0);
+        keyboard.touch_down(o, 0);
+        keyboard.touch_move(Point { x: o.x - 0.6 * w, y: o.y + 0.05 * w }, 40);
+        assert_eq!(keyboard.touch_up(Point { x: o.x - 1.1 * w, y: o.y + 0.1 * w }, 80), Action::Commit("o".into()));
+        // A little slower or longer is a swipe, as the log's kept ones were.
+        keyboard.touch_down(o, 1000);
+        keyboard.touch_move(Point { x: o.x - 0.6 * w, y: o.y }, 1050);
+        assert_eq!(keyboard.touch_up(Point { x: o.x - 1.25 * w, y: o.y }, 1093), Action::Swipe);
     }
 
     #[test]

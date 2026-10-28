@@ -160,4 +160,11 @@
         <item quantity="one">%d Wort</item>
         <item quantity="other">%d Wörter</item>
     </plurals>
+    <string name="tap_learning">Lernen, wo ich tippe</string>
+    <string name="tap_learning_info">Die Tastatur lernt, wo deine Tipper auf den Tasten landen, und lässt jede Taste dort antworten. Der Punkt zeigt, wo sie gegenüber der Mitte einer Taste landen.</string>
+    <string name="tap_higher">%s mm höher</string>
+    <string name="tap_lower">%s mm tiefer</string>
+    <string name="tap_left">%s mm links</string>
+    <string name="tap_right">%s mm rechts</string>
+    <string name="tap_centre">Mittig</string>
 </resources>
