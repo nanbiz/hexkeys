@@ -318,6 +318,27 @@ class KeyboardView(
         if (handle == 0L) return
         val preferences = Dictionaries.preferences(context)
         Core.setTaps(handle, preferences.getFloat(TAP_X, 0f), preferences.getFloat(TAP_Y, 0f), preferences.getBoolean(TAP_LEARNING, true))
+        moveKeys()
+    }
+
+    /**
+     * How far the drawn keys are moved, in pixels, while they follow where taps
+     * land. Touches are taken back by as much before the core sees them, so the
+     * core measures taps against the keys as drawn: the drawing settles at the
+     * learned offset instead of chasing it, and the keys answer that much
+     * further on, where the finger lands on them.
+     */
+    private var shiftX = 0f
+    private var shiftY = 0f
+
+    /** Moves the drawn keys to the learned offset, while they are to follow it. */
+    private fun moveKeys() {
+        val preferences = Dictionaries.preferences(context)
+        val moving = preferences.getBoolean(TAP_LEARNING, true) && preferences.getBoolean(TAP_MOVE_KEYS, false)
+        val (x, y) = if (moving && handle != 0L) Core.taps(handle).let { it[0] to it[1] } else 0f to 0f
+        val w = if (handle != 0L) Core.cellWidth(handle) else 0f
+        shiftX = x * w
+        shiftY = y * w
     }
 
     /** Keeps where taps land, as the core has learned it so far. */
@@ -406,7 +427,7 @@ class KeyboardView(
 
     /** A touch's height in the keys' own terms: the bar stands for the whole number row. */
     private fun keysY(y: Float): Float {
-        val inKeys = y - keysTop
+        val inKeys = y - keysTop - shiftY
         if (barProgress == 0f || inKeys < 0) return inKeys
         // Below the bar during the search are the letters, where they always are.
         if (barAboveLetters && inKeys >= numbersHeight) return inKeys
@@ -570,7 +591,7 @@ class KeyboardView(
         canvas.drawRect(0f, headroom.toFloat(), width.toFloat(), height.toFloat(), backgroundPaint)
         if (stripHeight > 0) drawStrip(canvas)
         canvas.save()
-        canvas.translate(0f, keysTop.toFloat())
+        canvas.translate(shiftX, keysTop + shiftY)
         // Labels fit the key's height as well as its width, which flatter keys have less of.
         val cellWidth = Core.cellWidth(handle) * minOf(1f, stretch * LABEL_FLATTENING)
         val pressed = Core.pressed(handle)
@@ -1073,7 +1094,7 @@ class KeyboardView(
                 if (finger >= 0) {
                     lift(fingerX, fingerY, time, "rollover")
                 }
-                val x = event.getX(index)
+                val x = event.getX(index) - shiftX
                 val y = keysY(event.getY(index))
                 stripTouch = if (y < 0) stripSlot(x) + 2 else -1
                 if (stripTouch >= 0) {
@@ -1091,7 +1112,7 @@ class KeyboardView(
             MotionEvent.ACTION_MOVE -> {
                 val at = event.findPointerIndex(finger)
                 if (at < 0) return true
-                fingerX = event.getX(at)
+                fingerX = event.getX(at) - shiftX
                 fingerY = keysY(event.getY(at))
                 addPoint(fingerX, fingerY, time)
                 val action = Core.touchMove(handle, fingerX, fingerY, time)
@@ -1100,7 +1121,7 @@ class KeyboardView(
                 if (action[0] != "nothing") act(action) else schedule()
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
-                val x = event.getX(index)
+                val x = event.getX(index) - shiftX
                 val y = keysY(event.getY(index))
                 if (stripTouch >= 0 && event.actionMasked == MotionEvent.ACTION_UP) {
                     val slot = stripSlot(x)
@@ -1183,6 +1204,7 @@ class KeyboardView(
         addPoint(x, y, time)
         act(Core.touchUp(handle, x, y, time))
         finishRecord(how)
+        moveKeys()
     }
 
     private fun act(action: Array<String>) {
@@ -1299,6 +1321,7 @@ class KeyboardView(
         /** Cells across a row of letters, in both layouts. */
         const val CELLS_ACROSS = 7
         const val TAP_X = "tap_x"
+        const val TAP_MOVE_KEYS = "tap_move_keys"
         const val TAP_Y = "tap_y"
 
         /** Preference: delete swipes come in from the left edge. */

@@ -96,9 +96,10 @@ class SettingsActivity : LocalizedActivity() {
             ) { id -> ui.preferences.edit().putString(Dictionaries.AUTOCORRECT_MODE, id).apply() },
             learningRow(),
             ui.toggle(getString(R.string.tap_learning), KeyboardView.TAP_LEARNING, default = true, info = getString(R.string.tap_learning_info)) {
-                tapSpot.visibility = if (ui.preferences.getBoolean(KeyboardView.TAP_LEARNING, true)) View.VISIBLE else View.GONE
+                val learning = ui.preferences.getBoolean(KeyboardView.TAP_LEARNING, true)
+                tapLearned.forEach { it.visibility = if (learning) View.VISIBLE else View.GONE }
             },
-            tapSpot,
+            *tapLearned.toTypedArray(),
             ui.navigationRow(getString(R.string.languages), languages) {
                 startActivity(Intent(this, LanguagesActivity::class.java))
             },
@@ -219,8 +220,14 @@ class SettingsActivity : LocalizedActivity() {
     private lateinit var lookSummary: TextView
 
     /** Where taps land, as the keyboard learned it, shown while it learns. */
-    private val tapSpot by lazy {
-        TapSpot(this, ui).also { it.visibility = if (ui.preferences.getBoolean(KeyboardView.TAP_LEARNING, true)) View.VISIBLE else View.GONE }
+    private val tapSpot by lazy { TapSpot(this, ui) }
+
+    /** What belongs to learning where taps land: where they land, and whether the drawn keys follow. */
+    private val tapLearned by lazy {
+        listOf(
+            tapSpot,
+            ui.toggle(getString(R.string.tap_move_keys), KeyboardView.TAP_MOVE_KEYS, info = getString(R.string.tap_move_keys_info)),
+        ).onEach { it.visibility = if (ui.preferences.getBoolean(KeyboardView.TAP_LEARNING, true)) View.VISIBLE else View.GONE }
     }
 
     /**
@@ -406,6 +413,7 @@ class Ui(private val activity: Activity) {
         LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            val switch = toggle("", key, default, changed).apply { contentDescription = label }
             addView(TextView(activity).apply {
                 text = label
                 setTextColor(this@Ui.text)
@@ -413,7 +421,9 @@ class Ui(private val activity: Activity) {
             })
             addView(info(info, label))
             addView(View(activity), LinearLayout.LayoutParams(0, 0, 1f))
-            addView(toggle("", key, default, changed).apply { contentDescription = label })
+            addView(switch)
+            // The whole row flips the switch, as a switch with its own label does; the i keeps its own tap.
+            setOnClickListener { switch.toggle() }
         }
 
     /** A small i that shows `text` when tapped, for what a setting does that its controls cannot show. */

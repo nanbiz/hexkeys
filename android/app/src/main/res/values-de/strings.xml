@@ -167,4 +167,6 @@
     <string name="tap_left">%s mm links</string>
     <string name="tap_right">%s mm rechts</string>
     <string name="tap_centre">Mittig</string>
+    <string name="tap_move_keys">Gezeichnete Tasten mitbewegen</string>
+    <string name="tap_move_keys_info">Die sichtbaren Tasten rücken dorthin, wo deine Tipper landen, und antworten um so viel weiter.</string>
 </resources>

@@ -168,4 +168,6 @@
     <string name="tap_left">%s mm left</string>
     <string name="tap_right">%s mm right</string>
     <string name="tap_centre">On the centre</string>
+    <string name="tap_move_keys">Move the drawn keys too</string>
+    <string name="tap_move_keys_info">The keys you see move to where your taps land, and answer that far further on.</string>
 </resources>

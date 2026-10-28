@@ -81,7 +81,7 @@ class HexInputMethod : InputMethodService() {
                 emojiSearch = null
             }
             Theme.KEY -> keyboard?.theme = Theme.current(this)
-            KeyboardView.TAP_LEARNING -> keyboard?.let {
+            KeyboardView.TAP_LEARNING, KeyboardView.TAP_MOVE_KEYS -> keyboard?.let {
                 it.saveTaps()
                 it.loadTaps()
             }
