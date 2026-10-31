@@ -43,6 +43,8 @@ class KeyboardView(
     private val onVoice: () -> Unit,
     private val onHeld: (send: Boolean) -> Unit = {},
     private val onFreshClip: () -> Unit = {},
+    private val onUndoDelete: () -> Unit = {},
+    private val onDeleteEnded: () -> Unit = {},
 ) : View(context) {
 
     private var handle = 0L
@@ -124,6 +126,13 @@ class KeyboardView(
         while (levels.size > LEVELS) levels.removeFirst()
         invalidate()
     }
+
+    /** What the delete slide that just ended took, offered in the strip to put back; empty for none. */
+    var undoText = ""
+        set(value) {
+            field = value
+            invalidate()
+        }
 
     /** What the delete slide under way has taken, shown in the strip while it lasts. */
     var deletedText = ""
@@ -747,6 +756,10 @@ class KeyboardView(
             drawHeld(canvas, middle, iconSize)
             return
         }
+        if (undoText.isNotEmpty() && !chipsShown && Core.deleting(handle).isEmpty()) {
+            drawUndo(canvas, middle, iconSize)
+            return
+        }
         if (freshClip.isNotEmpty() && !chipsShown) {
             drawFreshClip(canvas, middle, iconSize)
             return
@@ -778,6 +791,35 @@ class KeyboardView(
     }
 
     /** In place of the words, a text just copied in a pill with the clipboard's icon, to paste with a tap. */
+    /** `text` as the strip may show it: in a password field, a dot for each character. */
+    private fun masked(text: String) = if (secret) "•".repeat(text.codePointCount(0, text.length)) else text
+
+    /** In place of the words, what the last delete slide took, struck through, as a button to put it back. */
+    private fun drawUndo(canvas: Canvas, middle: Float, iconSize: Float) {
+        val left = 2 * stripSide + 4 * density
+        val right = width - 2 * stripSide - 4 * density
+        stripPaint.isFakeBoldText = false
+        stripPaint.textSize = 15 * resources.displayMetrics.scaledDensity
+        val icon = iconSize * 0.8f
+        val room = right - left - icon - 36 * density
+        // The end of the text is what was deleted first, next to the cursor.
+        var shown = masked(undoText).replace('\n', ' ')
+        if (stripPaint.measureText(shown) > room) {
+            while (shown.length > 1 && stripPaint.measureText("…$shown") > room) shown = withoutFirstCharacter(shown)
+            shown = "…$shown"
+        }
+        val width = icon + 8 * density + stripPaint.measureText(shown) + 28 * density
+        val start = (left + right - width) / 2
+        val half = stripHeight * 0.32f
+        pillPaint.color = theme.other
+        canvas.drawRoundRect(start, middle - half, start + width, middle + half, half, half, pillPaint)
+        drawIcon(canvas, R.drawable.icon_undo, start + 14 * density + icon / 2, middle, icon, theme.label)
+        val textX = start + 14 * density + icon + 8 * density + stripPaint.measureText(shown) / 2
+        stripPaint.isStrikeThruText = true
+        canvas.drawText(shown, textX, middle - (stripPaint.descent() + stripPaint.ascent()) / 2, stripPaint)
+        stripPaint.isStrikeThruText = false
+    }
+
     private fun drawFreshClip(canvas: Canvas, middle: Float, iconSize: Float) {
         val left = 2 * stripSide + 4 * density
         val right = width - 2 * stripSide - 4 * density
@@ -865,9 +907,9 @@ class KeyboardView(
         val right = width - 2 * stripSide - 8 * density
         stripPaint.isFakeBoldText = false
         stripPaint.textSize = 17 * resources.displayMetrics.scaledDensity
-        var shown = deletedText
+        var shown = masked(deletedText)
         while (shown.length > 1 && stripPaint.measureText("…$shown") > right - left) shown = shown.drop(1)
-        if (shown != deletedText) shown = "…$shown"
+        if (shown != masked(deletedText)) shown = "…$shown"
         val textWidth = stripPaint.measureText(shown)
         val x = right - textWidth / 2
         val baseline = middle - (stripPaint.descent() + stripPaint.ascent()) / 2
@@ -1145,6 +1187,10 @@ class KeyboardView(
                         onVoice()
                         return true
                     }
+                    if (undoText.isNotEmpty() && heldText.isEmpty() && !listening && recognising == 0 && !chipsShown) {
+                        onUndoDelete()
+                        return true
+                    }
                     if (freshClip.isNotEmpty() && heldText.isEmpty() && !listening && recognising == 0 && !chipsShown) {
                         onFreshClip()
                         return true
@@ -1202,7 +1248,9 @@ class KeyboardView(
             postDelayed(unflash, (downTime + FLASH_MS - time).coerceIn(FLASH_MS / 2, FLASH_MS))
         }
         addPoint(x, y, time)
+        val deleting = Core.deleting(handle).isNotEmpty()
         act(Core.touchUp(handle, x, y, time))
+        if (deleting) onDeleteEnded()
         finishRecord(how)
         moveKeys()
     }

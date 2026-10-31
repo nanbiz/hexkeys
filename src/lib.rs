@@ -1478,12 +1478,15 @@ impl Keyboard {
             started = true;
         }
         let start = self.edge_distance(touch.start.x);
-        // The letters follow the finger at once; the words and the endless zone
-        // count a quick stroke for less.
+        // The letters follow the finger at once, but a stroke still as quick as a
+        // flick takes only its first letter until it has lasted longer; the words
+        // and the endless zone count a quick stroke for less.
         let finger = self.edge_distance(touch.at.x);
         let reach = self.delete_reach(&touch, time);
         let back_reach = reach + RESTORE_SLACK * w;
-        let forwards = (self.delete_progress(start, finger).0, self.delete_progress(start, reach).1);
+        let letters = self.delete_progress(start, finger).0;
+        let letters = if time - touch.start_time < FAST_MS { letters.min(1) } else { letters };
+        let forwards = (letters, self.delete_progress(start, reach).1);
         let back = (self.delete_progress(start, finger + RESTORE_SLACK * w).0, self.delete_progress(start, back_reach).1);
         let in_endless = self.delete_zone(start, reach) == 2;
         // The endless zone has the slack too, so a finger easing off keeps its words.
@@ -2526,6 +2529,20 @@ mod tests {
     }
 
     #[test]
+    fn a_quick_flick_takes_one_letter_and_a_slide_catches_up_after() {
+        let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
+        let w = keyboard.layout.cell_width;
+        let actions = slide_to(&mut keyboard, &[(1007.0 - 0.6 * w, 40), (1007.0 - 1.6 * w, 90)]);
+        assert_eq!(amounts(&actions[0]), (1, 0, 0), "the first letter at once");
+        assert_eq!(actions[1], Action::Nothing, "within a flick's time no more");
+        let y = keyboard.layout.numbers_bottom / 2.0;
+        assert_eq!(keyboard.touch_up(Point { x: 1007.0 - 2.0 * w, y }, 120), Action::Nothing, "lifted as a flick, one letter it stays");
+        let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
+        let actions = slide_to(&mut keyboard, &[(1007.0 - 0.6 * w, 40), (1007.0 - 1.6 * w, 90), (1007.0 - 1.6 * w, 160)]);
+        assert!(amounts(&actions[2]).0 > 100, "past a flick's time the letters catch up with the finger: {:?}", actions[2]);
+    }
+
+    #[test]
     fn left_handed_delete_slides_in_from_the_left() {
         let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
         keyboard.gestures.delete_from_left = true;
@@ -2852,9 +2869,9 @@ mod tests {
         // Left in the number row's right half, quickly: deletes on lifting.
         let o = Point { x: 0.7 * keyboard.layout.width, y: keyboard.layout.numbers_bottom / 2.0 };
         keyboard.touch_down(o, 0);
-        keyboard.touch_move(Point { x: o.x - 0.7 * w, y: o.y }, 50);
-        let flicked = keyboard.touch_up(Point { x: o.x - 1.4 * w, y: o.y + 0.1 * w }, 100);
-        assert!(matches!(flicked, Action::Delete { letters, .. } if letters > 0) || flicked == Action::Backspace, "a flick takes one: {flicked:?}");
+        let first = keyboard.touch_move(Point { x: o.x - 0.7 * w, y: o.y }, 50);
+        assert_eq!(first, Action::Delete { letters: 1, words: 0, endless: 0, started: true }, "a flick takes one");
+        assert_eq!(keyboard.touch_up(Point { x: o.x - 1.4 * w, y: o.y + 0.1 * w }, 100), Action::Nothing, "and no more");
     }
 
     #[test]

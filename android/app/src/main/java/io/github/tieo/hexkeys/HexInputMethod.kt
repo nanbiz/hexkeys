@@ -346,6 +346,19 @@ class HexInputMethod : InputMethodService() {
      * letters it took, and whether it went on to words.
      */
     private var sliding = false
+
+    /** Where the cursor was when the last slide ended, which its text goes back to. */
+    private var undoAt = -1
+
+    /** Puts back what the last delete slide took, where the cursor still is. */
+    private fun undoDelete() {
+        val view = keyboard ?: return
+        val text = view.undoText
+        view.undoText = ""
+        if (text.isEmpty() || currentInputConnection == null || editor.hasSelection || editor.selectionStart != undoAt) return
+        editor.commit(text)
+        refreshStrip()
+    }
     private var slidePeakLetters = 0
     private var slideReachedWords = false
 
@@ -359,6 +372,11 @@ class HexInputMethod : InputMethodService() {
     private fun endSlide() {
         if (!sliding) return
         sliding = false
+        // What the slide took is offered to put back, while the cursor stays where it left it.
+        if (deleted.isNotEmpty() && !slideUndone) {
+            keyboard?.undoText = deleted.reversed().joinToString("")
+            undoAt = editor.selectionStart
+        }
         val preferences = Dictionaries.preferences(this)
         if (slideReachedWords || slidePeakLetters == 0 || !preferences.getBoolean(KeyboardView.DELETE_ADAPT, true)) return
         val range = KeyboardView.DELETE_LETTERS_RANGE
@@ -529,6 +547,8 @@ class HexInputMethod : InputMethodService() {
 
     private fun perform(kind: String, text: String) {
         if (kind != "delete" && kind != "nothing" && kind != "redraw") endSlide()
+        // Anything else done puts the last slide's text beyond putting back.
+        if (kind != "nothing" && kind != "redraw") keyboard?.undoText = ""
         if (currentInputConnection == null) return
         if (frame?.searching == true) {
             searchKey(kind, text)
@@ -666,6 +686,8 @@ class HexInputMethod : InputMethodService() {
         onVoice = { toggleVoice() },
         onHeld = { send -> releaseHeld(send) },
         onFreshClip = { clips.fresh()?.let { paste(it.text) } },
+        onUndoDelete = { undoDelete() },
+        onDeleteEnded = { endSlide() },
     ).let { view ->
         keyboard = view
         view.accents = accents
@@ -850,6 +872,7 @@ class HexInputMethod : InputMethodService() {
         val pin = info.inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_CLASS_NUMBER &&
             variation == InputType.TYPE_NUMBER_VARIATION_PASSWORD
         keyboard?.secret = password || pin
+        keyboard?.undoText = ""
         suggesting = !password && !noSuggestions
         swiped = null
         // Device colours follow the wallpaper and dark mode, which may have changed.
