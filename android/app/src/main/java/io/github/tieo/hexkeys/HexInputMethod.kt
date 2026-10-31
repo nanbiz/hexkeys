@@ -235,6 +235,10 @@ class HexInputMethod : InputMethodService() {
         val (letters, wordsThrough, endless, started) = text.split(" ").map { it.toInt() }
         var before = target.textBefore()
         if (started == 1) {
+            endSlide()
+            sliding = true
+            slidePeakLetters = 0
+            slideReachedWords = false
             deleted.clear()
             deletedCharacters = 0
             swipedBeforeDelete = justSwiped?.takeIf { before.endsWith(it) }
@@ -303,6 +307,8 @@ class HexInputMethod : InputMethodService() {
             deleted.addLast(piece)
         }
         wordPeak.reached(askedWords, minOf(deleted.size - deletedCharacters, askedWords))
+        if (words > 0) slideReachedWords = true
+        slidePeakLetters = maxOf(slidePeakLetters, deletedCharacters)
         if (undoing != null && characters < 0 && slideUndone) {
             target.deleteBefore(undoing.typed.length)
             target.commit(undoing.inserted)
@@ -334,6 +340,42 @@ class HexInputMethod : InputMethodService() {
     }
 
     private var wordPeak = Peak()
+
+    /**
+     * The delete slide under way, for adapting to how far slides go: the most
+     * letters it took, and whether it went on to words.
+     */
+    private var sliding = false
+    private var slidePeakLetters = 0
+    private var slideReachedWords = false
+
+    /**
+     * Ends the delete slide under way, if any. A slide that took letters only
+     * and then gave some back went too fast: the letters zone takes fewer
+     * across its length from now on. One that stopped where it went takes
+     * them a little faster again. Sliding all the way back is changing one's
+     * mind, which says nothing about the pace.
+     */
+    private fun endSlide() {
+        if (!sliding) return
+        sliding = false
+        val preferences = Dictionaries.preferences(this)
+        if (slideReachedWords || slidePeakLetters == 0 || !preferences.getBoolean(KeyboardView.DELETE_ADAPT, true)) return
+        val range = KeyboardView.DELETE_LETTERS_RANGE
+        var learned = preferences.getFloat(
+            KeyboardView.DELETE_LETTERS_LEARNED,
+            preferences.getInt(KeyboardView.DELETE_LETTERS, KeyboardView.DELETE_LETTERS_DEFAULT).toFloat(),
+        )
+        learned = when (deletedCharacters) {
+            0 -> return
+            in 1 until slidePeakLetters -> learned - SLOWER_AFTER_BACK
+            else -> learned + FASTER_AFTER_STOP
+        }.coerceIn(range.first.toFloat(), range.last.toFloat())
+        preferences.edit()
+            .putFloat(KeyboardView.DELETE_LETTERS_LEARNED, learned)
+            .putInt(KeyboardView.DELETE_LETTERS, Math.round(learned))
+            .apply()
+    }
 
     /** The characters the letters zone of the slide under way spans, and the words its words zone does. */
     private var slideLetters = 0
@@ -486,6 +528,7 @@ class HexInputMethod : InputMethodService() {
     }
 
     private fun perform(kind: String, text: String) {
+        if (kind != "delete" && kind != "nothing" && kind != "redraw") endSlide()
         if (currentInputConnection == null) return
         if (frame?.searching == true) {
             searchKey(kind, text)
@@ -749,6 +792,7 @@ class HexInputMethod : InputMethodService() {
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
+        endSlide()
         keyboard?.saveTaps()
         // Hidden, the keyboard stops listening; what was said is still put in.
         voice.stop()
@@ -1170,6 +1214,14 @@ class HexInputMethod : InputMethodService() {
         /** The last word before the cursor with the spaces after it. */
         val WORD_AT_END = Regex("\\S*\\s*$")
 
+
+        /**
+         * How many letters fewer the letters zone takes after a slide that gave
+         * some back, and how many more after one that stopped where it went: the
+         * pace settles where about one slide in eighteen gives some back.
+         */
+        private const val SLOWER_AFTER_BACK = 0.5f
+        private const val FASTER_AFTER_STOP = 0.03f
 
         /** Text size of an autofill suggestion's subtitle, such as a login's account, in sp. */
         const val INLINE_SUBTITLE_SP = 14f

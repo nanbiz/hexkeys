@@ -170,4 +170,6 @@
     <string name="tap_centre">On the centre</string>
     <string name="tap_move_keys">Move the drawn keys too</string>
     <string name="tap_move_keys_info">The keys you see move to where your taps land, and answer that far further on.</string>
+    <string name="delete_adapt">Adapt to how I delete</string>
+    <string name="delete_adapt_info">When a slide takes letters too fast and you slide back, the letters zone takes fewer; slides that stop where you meant make it a little faster again. The count above shows where it stands.</string>
 </resources>

@@ -121,7 +121,11 @@ class SettingsActivity : LocalizedActivity() {
             ui.stepper(
                 getString(R.string.delete_letters), KeyboardView.DELETE_LETTERS, KeyboardView.DELETE_LETTERS_RANGE,
                 KeyboardView.DELETE_LETTERS_DEFAULT, step = 1, describe = { resources.getQuantityString(R.plurals.count_letters, it, it) },
-            ),
+            ) {
+                // Set by hand, the count is where adapting goes on from.
+                ui.preferences.edit().remove(KeyboardView.DELETE_LETTERS_LEARNED).apply()
+            },
+            ui.toggle(getString(R.string.delete_adapt), KeyboardView.DELETE_ADAPT, default = true, info = getString(R.string.delete_adapt_info)),
             ui.stepper(
                 getString(R.string.delete_word_words), KeyboardView.DELETE_WORD_WORDS, KeyboardView.DELETE_WORD_WORDS_RANGE,
                 KeyboardView.DELETE_WORD_WORDS_DEFAULT, step = 1, describe = { resources.getQuantityString(R.plurals.count_words, it, it) },

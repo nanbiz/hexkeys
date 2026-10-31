@@ -1348,6 +1348,13 @@ class KeyboardView(
          */
         const val DELETE_LETTERS = "delete_letters"
         const val DELETE_LETTERS_DEFAULT = 20
+
+        /**
+         * Preferences: whether the letters zone adapts to how far slides go, and the
+         * count it has adapted to, kept finer than [DELETE_LETTERS] shows it.
+         */
+        const val DELETE_ADAPT = "delete_adapt"
+        const val DELETE_LETTERS_LEARNED = "delete_letters_learned"
         val DELETE_LETTERS_RANGE = 3..30
         const val DELETE_WORD_WORDS = "delete_word_words"
         const val DELETE_WORD_WORDS_DEFAULT = 10

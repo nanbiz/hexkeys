@@ -169,4 +169,6 @@
     <string name="tap_centre">Mittig</string>
     <string name="tap_move_keys">Gezeichnete Tasten mitbewegen</string>
     <string name="tap_move_keys_info">Die sichtbaren Tasten rücken dorthin, wo deine Tipper landen, und antworten um so viel weiter.</string>
+    <string name="delete_adapt">An mein Löschen anpassen</string>
+    <string name="delete_adapt_info">Wenn ein Ziehen zu schnell Buchstaben löscht und du zurückziehst, löscht der Buchstabenbereich weniger; Ziehen, das dort stoppt, wo du wolltest, macht ihn wieder etwas schneller. Die Zahl darüber zeigt den Stand.</string>
 </resources>

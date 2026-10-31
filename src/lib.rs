@@ -908,9 +908,10 @@ const DELETE_FLICK: f32 = 0.45;
 /// than it means to.
 const RESTORE_SLACK: f32 = 0.25;
 
-/// How long a delete slide has to have lasted for its distance to count in
-/// full, in ms. A quicker stroke counts for less, so a flick takes a
-/// letter where a slow slide of the same length takes several.
+/// How long a delete slide has to have lasted for its distance past the
+/// letters zone to count in full, in ms. A quicker stroke counts for less
+/// there, so a flick across the keyboard takes letters, not words; the
+/// letters zone follows the finger at once.
 const DELETE_RAMP_MS: f32 = 350.0;
 
 /// How long a delete slide is in the endless zone before it takes its
@@ -1477,10 +1478,13 @@ impl Keyboard {
             started = true;
         }
         let start = self.edge_distance(touch.start.x);
+        // The letters follow the finger at once; the words and the endless zone
+        // count a quick stroke for less.
+        let finger = self.edge_distance(touch.at.x);
         let reach = self.delete_reach(&touch, time);
         let back_reach = reach + RESTORE_SLACK * w;
-        let forwards = self.delete_progress(start, reach);
-        let back = self.delete_progress(start, back_reach);
+        let forwards = (self.delete_progress(start, finger).0, self.delete_progress(start, reach).1);
+        let back = (self.delete_progress(start, finger + RESTORE_SLACK * w).0, self.delete_progress(start, back_reach).1);
         let in_endless = self.delete_zone(start, reach) == 2;
         // The endless zone has the slack too, so a finger easing off keeps its words.
         let left_endless = self.delete_zone(start, back_reach) < 2;
@@ -2375,7 +2379,8 @@ mod tests {
         let at = |x: f32| Point { x, y };
         keyboard.touch_down(at(1007.0), 0);
         assert_eq!(keyboard.touch_move(at(1007.0 - 0.2 * w), 100), Action::Nothing, "not yet a slide");
-        assert!(matches!(keyboard.touch_move(at(1007.0 - 0.4 * w), 200), Action::Delete { letters: 0, words: 0, endless: 0, started: true }));
+        // The slide starts already taking letters, as far as the finger has come.
+        assert!(matches!(keyboard.touch_move(at(1007.0 - 0.4 * w), 200), Action::Delete { letters, words: 0, endless: 0, started: true } if letters > 0));
         // Halfway between the start, a slack in, and the words zone at 454 from the edge.
         let half = 1.0 + 0.25 * w + (453.6 - 1.0 - 0.25 * w) / 2.0;
         let (letters, words, _) = amounts(&keyboard.touch_move(at(1008.0 - half), 400));
