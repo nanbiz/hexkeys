@@ -356,6 +356,7 @@ class HexInputMethod : InputMethodService() {
         val text = view.undoText
         view.undoText = ""
         if (text.isEmpty() || currentInputConnection == null || editor.hasSelection || editor.selectionStart != undoAt) return
+        view.event("undid", "${text.codePointCount(0, text.length)}")
         editor.commit(text)
         refreshStrip()
     }
@@ -372,6 +373,9 @@ class HexInputMethod : InputMethodService() {
     private fun endSlide() {
         if (!sliding) return
         sliding = false
+        // How the slide went, for the debug log: the most letters it took, the letters
+        // and words it ended with, and what the letters and words zones span.
+        keyboard?.note("slid", "$slidePeakLetters $deletedCharacters ${deleted.size - deletedCharacters} $slideLetters $slideWords")
         // What the slide took is offered to put back, while the cursor stays where it left it.
         if (deleted.isNotEmpty() && !slideUndone) {
             keyboard?.undoText = deleted.reversed().joinToString("")

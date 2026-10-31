@@ -1073,6 +1073,13 @@ class KeyboardView(
         }
     }
 
+    /** Writes down something done outside a touch on the keys, such as a tap in the strip. */
+    fun event(kind: String, text: String) {
+        if (logging && !secret) {
+            GestureLog.write(context, JSONObject().put("time", System.currentTimeMillis()).put("event", kind).put("text", text))
+        }
+    }
+
     /** Adds what came of the touch being recorded, such as the words a swipe spelled. */
     fun note(kind: String, text: String) {
         if (record != null) recordActions.put(JSONObject().put("kind", kind).put("text", text))

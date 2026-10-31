@@ -14,7 +14,8 @@ import java.io.File
  * build's shrinking removes.
  */
 object GestureLog {
-    private const val LIMIT = 4L shl 20
+    /** About ten days of typing, so a log pulled now and then misses nothing. */
+    private const val LIMIT = 32L shl 20
 
     /** Writes happen here, off the main thread, so the log never holds up a touch. */
     private val writer = java.util.concurrent.Executors.newSingleThreadExecutor()
