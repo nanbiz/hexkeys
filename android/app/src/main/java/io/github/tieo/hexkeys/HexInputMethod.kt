@@ -368,7 +368,8 @@ class HexInputMethod : InputMethodService() {
      * and then gave some back went too fast: the letters zone takes fewer
      * across its length from now on. One that stopped where it went takes
      * them a little faster again. Sliding all the way back is changing one's
-     * mind, which says nothing about the pace.
+     * mind, and a flick's single letter is the same at any pace: neither says
+     * anything about it.
      */
     private fun endSlide() {
         if (!sliding) return
@@ -382,7 +383,8 @@ class HexInputMethod : InputMethodService() {
             undoAt = editor.selectionStart
         }
         val preferences = Dictionaries.preferences(this)
-        if (slideReachedWords || slidePeakLetters == 0 || !preferences.getBoolean(KeyboardView.DELETE_ADAPT, true)) return
+        // A flick takes one letter whatever its pace, so only slides that took more tell it.
+        if (slideReachedWords || slidePeakLetters <= 1 || !preferences.getBoolean(KeyboardView.DELETE_ADAPT, true)) return
         val range = KeyboardView.DELETE_LETTERS_RANGE
         var learned = preferences.getFloat(
             KeyboardView.DELETE_LETTERS_LEARNED,
