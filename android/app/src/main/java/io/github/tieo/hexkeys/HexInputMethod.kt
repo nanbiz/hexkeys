@@ -73,6 +73,24 @@ class HexInputMethod : InputMethodService() {
     /** The word a swipe just put in, while its alternatives show in the strip. */
     private var swiped: String? = null
 
+    /**
+     * The words swiped in this field, each with the words its swipe offered,
+     * the one in the text first, newest last: back in such a word, the strip
+     * offers those again rather than what its spelling suggests.
+     */
+    private val swipes = LinkedHashMap<String, Array<String>>()
+
+    /** The words a swipe offered for the word the cursor is in, when it was swiped in this field. */
+    private fun swipedAround(before: String): Array<String>? =
+        swipes[WORD_BEFORE.find(before)?.value.orEmpty() + editor.wordAfter()]
+
+    /** Keeps the words a swipe offered under the one of them in the text, `words[0]`. */
+    private fun rememberSwipe(words: Array<String>) {
+        swipes.remove(words[0])
+        swipes[words[0]] = words
+        while (swipes.size > SWIPES_KEPT) swipes.remove(swipes.keys.first())
+    }
+
     /** Reloads the dictionaries when the languages change in settings. */
     private val settingsChanged = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
@@ -538,6 +556,7 @@ class HexInputMethod : InputMethodService() {
             val last = editor.textBefore().lastOrNull()
             val space = last != null && !last.isWhitespace() && last !in OPENING
             swiped = words[0]
+            rememberSwipe(words)
             view.note("words", words.joinToString(", "))
             val typed = editor.textBefore() + (if (space) " " else "") + words[0]
             editor.commit((if (space) " " else "") + words[0])
@@ -670,6 +689,9 @@ class HexInputMethod : InputMethodService() {
             val connection = editor
             lastCorrection = null
             swiped = null
+            // A swiped word changed for another its swipe offered keeps the swipe's words.
+            val current = WORD_BEFORE.find(connection.textBefore())?.value.orEmpty() + connection.wordAfter()
+            swipes.remove(current)?.let { words -> rememberSwipe(arrayOf(word) + words.filter { it != word }) }
             // Choosing the word as typed over the suggestions keeps it on purpose.
             if (word == keyboard?.unknown) learn(word, LEARNED)
             // With the cursor inside a word, the suggestion takes the place of the whole word.
@@ -700,6 +722,13 @@ class HexInputMethod : InputMethodService() {
         // A view made anew, as on rotating, shows the languages before any suggestion does.
         showLanguage(language)
         view.logContext = { if (suggesting && currentInputConnection != null) editor.textBefore() else null }
+        view.charBefore = {
+            when {
+                frame?.searching == true -> queryText.textBefore().lastOrNull()
+                currentInputConnection != null -> editor.textBefore().lastOrNull()
+                else -> null
+            }
+        }
         val emoji = EmojiPanel(
             this,
             onEmoji = { editor.commit(it) },
@@ -881,6 +910,7 @@ class HexInputMethod : InputMethodService() {
         keyboard?.undoText = ""
         suggesting = !password && !noSuggestions
         swiped = null
+        if (fieldOf(info) != shownField) swipes.clear()
         // Device colours follow the wallpaper and dark mode, which may have changed.
         // Another field opens on the letters, with the keys rather than a panel. The
         // same field started over keeps everything: Paseo starts its field over when
@@ -1162,6 +1192,8 @@ class HexInputMethod : InputMethodService() {
         val before = editor.textBefore()
         val letters = view.letters
         if (!suggesting || letters == 0L || view.stripBefore == before) return
+        // A swiped word keeps its swipe's words, which correct nothing.
+        if (swipedAround(before) != null) return
         val whole = before + editor.wordAfter()
         val strip = runCatching {
             Core.words.submit<Array<String>> { Core.strip(lexicon, letters, whole) }
@@ -1180,6 +1212,12 @@ class HexInputMethod : InputMethodService() {
         if (word != null && before?.endsWith(word) == true) return
         if (!suggesting || before == null) {
             view.clearSuggestions()
+            return
+        }
+        // Back in a word swiped in this field, the strip offers that swipe's words.
+        swipedAround(before)?.let {
+            ++stripRequest
+            view.showSwipe(it)
             return
         }
         // Worked out on the words thread; a strip overtaken by newer text is dropped.
@@ -1265,6 +1303,12 @@ class HexInputMethod : InputMethodService() {
 
         /** The word, or the rest of one, a text starts with. */
         val WORD_AT_START = Regex("^[\\p{L}\\p{N}'’-]*")
+
+        /** The part of a word before the cursor. */
+        val WORD_BEFORE = Regex("[\\p{L}\\p{N}'’-]+$")
+
+        /** How many swiped words a field keeps the swipes' words for. */
+        const val SWIPES_KEPT = 64
 
         /** What a swiped word follows without a space. */
         const val OPENING = "([{\"'¿¡"

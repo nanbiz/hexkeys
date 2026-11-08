@@ -1056,6 +1056,9 @@ class KeyboardView(
     /** The text before the cursor for the gesture log, null where it must not be kept. */
     var logContext: () -> String? = { null }
 
+    /** The character before the cursor, which the keys at the number row's edge lean by. */
+    var charBefore: () -> Char? = { null }
+
     /** The touch being written down for [GestureLog], in debug builds. */
     private var record: JSONObject? = null
     private var recordPoints = JSONArray()
@@ -1155,7 +1158,14 @@ class KeyboardView(
                 downTime = time
                 fingerX = x
                 fingerY = y
-                Core.touchDown(handle, x, y, time)
+                val before = charBefore()
+                val follows = when {
+                    before == null -> 0
+                    before.isLetter() -> 1
+                    before.isDigit() -> 2
+                    else -> 0
+                }
+                Core.touchDown(handle, x, y, time, follows)
                 startRecord(x, y, time)
             }
             MotionEvent.ACTION_MOVE -> {

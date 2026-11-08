@@ -1,32 +1,104 @@
-//! Where a debug build's gesture log says taps landed against the key they
-//! typed, and what shifting taps by that average would have changed:
-//! `cargo run --example taps -- gestures.jsonl`. Prints, per letter row, the
-//! taps' mean offset from the nearest cell centre of their key in key widths,
-//! then replays every tap shifted by the overall mean: how many letters that
-//! were deleted at once and typed again would have been the one typed again,
-//! and how many letters kept would have changed. Taps are touches that typed
-//! one letter and moved less than a third of a key.
+//! Replays the taps in a debug build's gesture log against ways of reading
+//! them: `cargo run --example taps -- gestures.jsonl`. A tap is a touch that
+//! typed one letter or digit and moved less than a third of a key. Each way
+//! is scored on the taps kept (how many it would have turned into another
+//! key, which is wrong but for the few typos nobody fixed) and on the taps
+//! deleted at once and typed again as another key (how many it would have
+//! typed right the first time). With `--leaning` after the file, it lists
+//! instead every tap the number row's edge leaning by what the cursor
+//! follows reads as another key.
 
-use hexkeys::{Keyboard, Point, space_bottom, space_middle, with_shift_and_backspace};
+use hexkeys::{Follows, Keyboard, Point, space_bottom, space_middle, with_shift_and_backspace};
 use serde_json::Value;
 
 struct Tap {
     keyboard: Keyboard,
     at: Point,
     typed: String,
-    /// The letter typed right after deleting this one, when it was deleted at once.
+    /// The key typed right after deleting this one, when it was deleted at once.
     retyped: Option<String>,
 }
 
-fn letter(record: &Value) -> Option<String> {
+fn single(record: &Value) -> Option<String> {
     let actions = record["actions"].as_array()?;
     let [action] = actions.as_slice() else { return None };
     let typed = action["text"].as_str()?;
-    (action["kind"] == "commit" && typed.chars().count() == 1 && typed.chars().all(char::is_alphabetic)).then(|| typed.to_lowercase())
+    (action["kind"] == "commit" && typed.chars().count() == 1 && typed.chars().all(char::is_alphanumeric)).then(|| typed.to_lowercase())
 }
 
 fn deletes(record: &Value) -> bool {
     record["actions"].as_array().is_some_and(|actions| actions.iter().any(|a| a["kind"] == "delete" || a["kind"] == "backspace"))
+}
+
+/// Where the learned offsets are kept apart: the letter row, and the left,
+/// middle or right third of the keyboard.
+fn zone(keyboard: &Keyboard, at: Point) -> usize {
+    let layout = &keyboard.layout;
+    let row = if at.y < layout.numbers_bottom { 0 } else { 1 + ((at.y - layout.numbers_bottom) / (layout.cell_height * 0.75)) as usize };
+    row.min(5) * 3 + ((at.x / layout.width * 3.0) as usize).min(2)
+}
+
+/// One way of reading taps, learning as it goes.
+trait Reader {
+    fn read(&self, tap: &Tap) -> String;
+    fn learn(&mut self, tap: &Tap);
+}
+
+fn label(keyboard: &Keyboard, at: Point) -> String {
+    keyboard.layout.key_at(at).map(|key| key.label.to_lowercase()).unwrap_or_default()
+}
+
+/// The offset of a tap from the nearest cell of the key it typed, in key widths.
+fn offset(tap: &Tap) -> Option<(f32, f32)> {
+    let layout = &tap.keyboard.layout;
+    let key = layout.keys.iter().find(|key| key.label.to_lowercase() == tap.typed)?;
+    let cell = key.cells.iter().min_by(|a, b| (a.x - tap.at.x).hypot(a.y - tap.at.y).total_cmp(&(b.x - tap.at.x).hypot(b.y - tap.at.y)))?;
+    let (dx, dy) = ((tap.at.x - cell.x) / layout.cell_width, (tap.at.y - cell.y) / layout.cell_width);
+    (dx.hypot(dy) <= 0.6).then_some((dx, dy))
+}
+
+struct Raw;
+impl Reader for Raw {
+    fn read(&self, tap: &Tap) -> String {
+        label(&tap.keyboard, tap.at)
+    }
+    fn learn(&mut self, _: &Tap) {}
+}
+
+/// Offsets learned as a moving average, one per zone or one for all.
+struct Learned {
+    offsets: Vec<(f32, f32)>,
+    zoned: bool,
+    /// Whether the number row's edge leans by what the cursor follows.
+    leaning: bool,
+}
+
+impl Learned {
+    fn new(zoned: bool, leaning: bool) -> Self {
+        Self { offsets: vec![(0.0, 0.0); 18], zoned, leaning }
+    }
+    fn slot(&self, tap: &Tap) -> usize {
+        if self.zoned { zone(&tap.keyboard, tap.at) } else { 0 }
+    }
+}
+
+impl Reader for Learned {
+    fn read(&self, tap: &Tap) -> String {
+        let w = tap.keyboard.layout.cell_width;
+        let (dx, dy) = self.offsets[self.slot(tap)];
+        let at = Point { x: tap.at.x - dx * w, y: tap.at.y - dy * w };
+        if !self.leaning {
+            return label(&tap.keyboard, at);
+        }
+        tap.keyboard.key_down(at).map(|key| tap.keyboard.layout.keys[key].label.to_lowercase()).unwrap_or_default()
+    }
+    fn learn(&mut self, tap: &Tap) {
+        let Some((dx, dy)) = offset(tap) else { return };
+        let slot = self.slot(tap);
+        let o = &mut self.offsets[slot];
+        o.0 = (o.0 + (dx - o.0) * 0.02).clamp(-0.3, 0.3);
+        o.1 = (o.1 + (dy - o.1) * 0.02).clamp(-0.3, 0.3);
+    }
 }
 
 fn main() {
@@ -35,13 +107,13 @@ fn main() {
     let records: Vec<Value> = text.lines().filter_map(|line| serde_json::from_str(line).ok()).filter(|r: &Value| r["points"].is_array()).collect();
     let mut taps = Vec::new();
     for (index, record) in records.iter().enumerate() {
-        let Some(typed) = letter(record) else { continue };
+        let Some(typed) = single(record) else { continue };
         let points = record["points"].as_array().expect("points");
         let mut letters = if record["layout"] == "space_middle" { space_middle() } else { space_bottom() };
         if record["editKeys"].as_bool().unwrap_or(false) {
             letters = with_shift_and_backspace(letters);
         }
-        let keyboard = Keyboard::new(letters, record["width"].as_f64().unwrap_or(1008.0) as f32, 1.0, 400);
+        let mut keyboard = Keyboard::new(letters, record["width"].as_f64().unwrap_or(1008.0) as f32, 1.0, 400);
         let w = keyboard.layout.cell_width;
         let at = |p: &Value| Point { x: p[0].as_f64().unwrap_or(0.0) as f32, y: p[1].as_f64().unwrap_or(0.0) as f32 };
         let (first, last) = (at(&points[0]), at(&points[points.len() - 1]));
@@ -49,51 +121,66 @@ fn main() {
             continue;
         }
         let retyped = match (records.get(index + 1), records.get(index + 2)) {
-            (Some(next), Some(after)) if deletes(next) => letter(after),
+            (Some(next), Some(after)) if deletes(next) => single(after),
             _ => None,
+        };
+        keyboard.follows = match record["before"].as_str().and_then(|text| text.chars().last()) {
+            Some(c) if c.is_alphabetic() => Follows::Letter,
+            Some(c) if c.is_ascii_digit() => Follows::Digit,
+            _ => Follows::Other,
         };
         taps.push(Tap { keyboard, at: first, typed, retyped });
     }
-    // Offsets by the key's row: sum of dx, sum of dy, count.
-    let mut rows: std::collections::BTreeMap<usize, (f32, f32, u32)> = Default::default();
-    let (mut sum_x, mut sum_y) = (0.0, 0.0);
-    for tap in &taps {
-        let layout = &tap.keyboard.layout;
-        let Some(key) = layout.keys.iter().find(|key| key.label == tap.typed) else { continue };
-        let Some(cell) = key.cells.iter().min_by(|a, b| (a.x - tap.at.x).hypot(a.y - tap.at.y).total_cmp(&(b.x - tap.at.x).hypot(b.y - tap.at.y))) else { continue };
-        let (dx, dy) = ((tap.at.x - cell.x) / layout.cell_width, (tap.at.y - cell.y) / layout.cell_width);
-        let entry = rows.entry(key.row).or_default();
-        entry.0 += dx;
-        entry.1 += dy;
-        entry.2 += 1;
-        sum_x += dx;
-        sum_y += dy;
-    }
-    println!("row  taps  mean dx  mean dy (key widths; dy below 0 is above the centre)");
-    for (row, (dx, dy, n)) in &rows {
-        println!("{row:>3} {n:>5} {:>8.3} {:>8.3}", dx / *n as f32, dy / *n as f32);
-    }
-    let count = taps.len().max(1) as f32;
-    let (mean_x, mean_y) = (sum_x / count, sum_y / count);
-    let (mut mended, mut fixed, mut broken, mut kept) = (0, 0, 0, 0);
-    for tap in &taps {
-        let w = tap.keyboard.layout.cell_width;
-        let shifted = Point { x: tap.at.x - mean_x * w, y: tap.at.y - mean_y * w };
-        let now = tap.keyboard.layout.key_at(shifted).map(|key| key.label.clone()).unwrap_or_default();
-        match &tap.retyped {
-            Some(wanted) if *wanted != tap.typed => {
-                fixed += 1;
-                if now == *wanted {
-                    mended += 1;
-                }
+    if std::env::args().nth(2).as_deref() == Some("--leaning") {
+        let (mut plain, mut leaning) = (Learned::new(false, false), Learned::new(false, true));
+        for (index, tap) in taps.iter().enumerate() {
+            let (was, now) = (plain.read(tap), leaning.read(tap));
+            if was != now {
+                println!("{index:>6} typed {} plain {was} leaning {now} at {:.0},{:.0} after {:?} then {:?}", tap.typed, tap.at.x, tap.at.y, tap.keyboard.follows, tap.retyped);
             }
-            _ => {
-                kept += 1;
-                if now != tap.typed {
-                    broken += 1;
-                }
+            if tap.retyped.is_none() {
+                plain.learn(tap);
+                leaning.learn(tap);
             }
         }
+        return;
     }
-    println!("shifted by {mean_x:.3}, {mean_y:.3}: {mended} of {fixed} letters typed again would have been right, {broken} of {kept} kept letters would have changed");
+    let readers: Vec<(&str, Box<dyn Reader>)> = vec![
+        ("as touched", Box::new(Raw)),
+        ("one offset", Box::new(Learned::new(false, false))),
+        ("offset per zone", Box::new(Learned::new(true, false))),
+        ("one offset, edge leaning", Box::new(Learned::new(false, true))),
+    ];
+    println!("{} taps", taps.len());
+    for (name, mut reader) in readers {
+        let (mut mended, mut fixed, mut broken, mut kept, mut digits_broken) = (0, 0, 0, 0, 0);
+        let mut changes: Vec<String> = Vec::new();
+        for tap in &taps {
+            let now = reader.read(tap);
+            match &tap.retyped {
+                Some(wanted) if *wanted != tap.typed => {
+                    fixed += 1;
+                    if now == *wanted {
+                        mended += 1;
+                    }
+                }
+                _ => {
+                    kept += 1;
+                    if now != tap.typed {
+                        broken += 1;
+                        if tap.typed.chars().all(|c| c.is_ascii_digit()) {
+                            digits_broken += 1;
+                        }
+                        if changes.len() < 40 {
+                            changes.push(format!("{}→{}", tap.typed, now));
+                        }
+                    }
+                }
+            }
+            if tap.retyped.is_none() {
+                reader.learn(tap);
+            }
+        }
+        println!("{name:<30} right after all {mended:>3} of {fixed}, changed {broken:>3} of {kept} kept ({digits_broken} digits) {}", changes.join(" "));
+    }
 }

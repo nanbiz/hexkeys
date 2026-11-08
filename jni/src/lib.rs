@@ -147,8 +147,15 @@ pub extern "system" fn Java_io_github_tieo_hexkeys_Core_touchDown(
     x: jfloat,
     y: jfloat,
     time: jlong,
+    follows: jint,
 ) {
-    keyboard(handle).touch_down(Point { x, y }, time as u64);
+    let keyboard = keyboard(handle);
+    keyboard.follows = match follows {
+        1 => hexkeys::Follows::Letter,
+        2 => hexkeys::Follows::Digit,
+        _ => hexkeys::Follows::Other,
+    };
+    keyboard.touch_down(Point { x, y }, time as u64);
 }
 
 #[unsafe(no_mangle)]

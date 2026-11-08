@@ -1131,7 +1131,32 @@ pub struct Keyboard {
     pub strip: f32,
     /// Where taps land against the keys, learned from them.
     pub taps: Taps,
+    /// What the cursor follows when the next touch comes down.
+    pub follows: Follows,
 }
+
+/// The character before the cursor, as far as it leans the taps at the
+/// number row's lower edge: right after a letter the top letter row reaches
+/// a little into the number row, right after a digit the number row reaches
+/// a little into the letters. Typing a word, a tap that high is far more
+/// often a letter aimed high than a digit, and typing a number the other way
+/// round, as the phone's log shows for both.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum Follows {
+    #[default]
+    Other,
+    Letter,
+    Digit,
+}
+
+/// How far the top letter row reaches into the number row after a letter,
+/// and the number row into the letters after a digit, in key widths. In the
+/// phone's log the letters typed too high after a letter came down at most
+/// 0.1 above the edge and every digit typed after a letter higher; the
+/// digits typed too low after a digit at most 0.09 below it and every letter
+/// typed after a digit at least 0.3 below.
+const LETTERS_REACH: f32 = 0.1;
+const DIGITS_REACH: f32 = 0.15;
 
 /// Where a finger's taps land against the centres of the keys they type,
 /// on average, in key widths: below 0 is left of or above the centre.
@@ -1187,6 +1212,7 @@ impl Keyboard {
             accents: Default::default(),
             strip: 0.0,
             taps: Taps::default(),
+            follows: Follows::Other,
         }
     }
 
@@ -1197,6 +1223,23 @@ impl Keyboard {
         }
         let w = self.layout.cell_width;
         Point { x: at.x - self.taps.offset.x * w, y: at.y - self.taps.offset.y * w }
+    }
+
+    /// The key a touch coming down at `at` is on: where the finger lands
+    /// shifted by the learned offset, and on the letters, the number row's
+    /// edge leant by what the cursor follows.
+    pub fn key_down(&self, at: Point) -> Option<usize> {
+        let mut at = self.aimed(at);
+        let edge = self.layout.numbers_bottom;
+        if self.layer == 0 && edge > 0.0 {
+            let w = self.layout.cell_width;
+            match self.follows {
+                Follows::Letter if at.y < edge && at.y >= edge - LETTERS_REACH * w => at.y = edge,
+                Follows::Digit if at.y >= edge && at.y < edge + DIGITS_REACH * w => at.y = edge - 1.0,
+                _ => {}
+            }
+        }
+        self.key_at(at)
     }
 
     /// Moves the learned offset towards where a tap on `key` landed.
@@ -1399,7 +1442,7 @@ impl Keyboard {
     pub fn touch_down(&mut self, at: Point, time: u64) {
         self.popup = None;
         let at_edge = self.in_delete_zone(at);
-        self.touch = self.key_at(self.aimed(at)).map(|key| Touch {
+        self.touch = self.key_down(at).map(|key| Touch {
             key,
             start: at,
             at,
@@ -2511,6 +2554,30 @@ mod tests {
         keyboard.taps.learning = false;
         keyboard.touch_down(a, 600_000);
         assert_eq!(keyboard.touch_up(a, 600_050), Action::Commit("w".into()));
+    }
+
+    #[test]
+    fn the_number_row_edge_leans_by_what_the_cursor_follows() {
+        let mut keyboard = Keyboard::new(space_middle(), 1008.0, 1.0, 400);
+        let w = keyboard.layout.cell_width;
+        let edge = keyboard.layout.numbers_bottom;
+        let o = near(&keyboard, "o", 0.0, 0.0);
+        let tap = |keyboard: &mut Keyboard, y: f32, follows: Follows| {
+            keyboard.follows = follows;
+            let at = Point { x: o.x + 0.6 * w, y };
+            keyboard.touch_down(at, 0);
+            keyboard.touch_up(at, 50)
+        };
+        // As in the phone's log: tr0 for tro, and 18o for 180.
+        let high = edge - 0.05 * w;
+        let low = edge + 0.08 * w;
+        assert_eq!(tap(&mut keyboard, high, Follows::Other), Action::Commit("0".into()));
+        assert_eq!(tap(&mut keyboard, high, Follows::Letter), Action::Commit("o".into()));
+        assert_eq!(tap(&mut keyboard, low, Follows::Other), Action::Commit("o".into()));
+        assert_eq!(tap(&mut keyboard, low, Follows::Digit), Action::Commit("0".into()));
+        // Further in, a key is its own whatever came before: nasx0, 2b.
+        assert_eq!(tap(&mut keyboard, edge - 0.15 * w, Follows::Letter), Action::Commit("0".into()));
+        assert_eq!(tap(&mut keyboard, edge + 0.3 * w, Follows::Digit), Action::Commit("o".into()));
     }
 
     #[test]

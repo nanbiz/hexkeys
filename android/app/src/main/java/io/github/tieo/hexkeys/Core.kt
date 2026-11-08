@@ -71,8 +71,12 @@ object Core {
     /** The key the finger went down on, or -1. */
     external fun pressed(handle: Long): Int
 
-    /** Touches with their [android.os.SystemClock.uptimeMillis] time. */
-    external fun touchDown(handle: Long, x: Float, y: Float, time: Long)
+    /**
+     * Touches with their [android.os.SystemClock.uptimeMillis] time. A touch
+     * coming down also says what the cursor follows: 1 a letter, 2 a digit,
+     * 0 anything else.
+     */
+    external fun touchDown(handle: Long, x: Float, y: Float, time: Long, follows: Int)
     external fun touchMove(handle: Long, x: Float, y: Float, time: Long): Array<String>
 
     /**
