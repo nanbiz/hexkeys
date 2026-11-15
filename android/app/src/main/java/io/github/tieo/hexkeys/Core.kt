@@ -74,9 +74,10 @@ object Core {
     /**
      * Touches with their [android.os.SystemClock.uptimeMillis] time. A touch
      * coming down also says what the cursor follows: 1 a letter, 2 a digit,
-     * 0 anything else.
+     * 0 anything else; and whether the delete slides just before can still
+     * be put back, by sliding back past a slide's start.
      */
-    external fun touchDown(handle: Long, x: Float, y: Float, time: Long, follows: Int)
+    external fun touchDown(handle: Long, x: Float, y: Float, time: Long, follows: Int, restorable: Boolean)
     external fun touchMove(handle: Long, x: Float, y: Float, time: Long): Array<String>
 
     /**

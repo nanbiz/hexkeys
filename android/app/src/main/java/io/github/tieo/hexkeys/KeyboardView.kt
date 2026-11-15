@@ -1059,6 +1059,9 @@ class KeyboardView(
     /** The character before the cursor, which the keys at the number row's edge lean by. */
     var charBefore: () -> Char? = { null }
 
+    /** Whether what the delete slides just before took can still be put back. */
+    var restorable: () -> Boolean = { false }
+
     /** The touch being written down for [GestureLog], in debug builds. */
     private var record: JSONObject? = null
     private var recordPoints = JSONArray()
@@ -1165,7 +1168,7 @@ class KeyboardView(
                     before.isDigit() -> 2
                     else -> 0
                 }
-                Core.touchDown(handle, x, y, time, follows)
+                Core.touchDown(handle, x, y, time, follows, restorable())
                 startRecord(x, y, time)
             }
             MotionEvent.ACTION_MOVE -> {

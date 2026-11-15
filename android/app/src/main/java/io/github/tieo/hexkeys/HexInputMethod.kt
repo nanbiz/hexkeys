@@ -250,10 +250,17 @@ class HexInputMethod : InputMethodService() {
      * the first one.
      */
     private fun slide(target: TextTarget, text: String, undo: Correction?, justSwiped: String?) {
-        val (letters, wordsThrough, endless, started) = text.split(" ").map { it.toInt() }
+        val (signed, wordsThrough, endless, started) = text.split(" ").map { it.toInt() }
+        val letters = maxOf(signed, 0)
         var before = target.textBefore()
         if (started == 1) {
             endSlide()
+            // Slides one after another, the cursor left where the last one ended,
+            // are put back together, by the undo or by sliding back past the start.
+            carried.clear()
+            if (target === editor && restorable()) carried.addAll(undoPieces)
+            restored.clear()
+            keyboard?.undoText = ""
             sliding = true
             slidePeakLetters = 0
             slideReachedWords = false
@@ -271,6 +278,13 @@ class HexInputMethod : InputMethodService() {
         }
         val word = swipedBeforeDelete
         target.beginBatch()
+        // Back past the start, the letters of the slides before come back one by one.
+        val back = if (signed < 0) maxOf(1, Math.round(-signed / 1000f * slideLetters)) else 0
+        while (restored.size > back) {
+            val piece = restored.removeLast()
+            target.deleteBefore(piece.length)
+            carried.addLast(piece)
+        }
         // Right after a correction the first character is the correction itself:
         // what was typed comes back, as backspace brings it back, and sliding
         // back to the start puts the correction in again.
@@ -333,9 +347,14 @@ class HexInputMethod : InputMethodService() {
             keptEnd = -1
             slideUndone = false
         }
+        while (restored.size < back && carried.isNotEmpty()) {
+            val piece = carried.removeLast()
+            target.commit(piece)
+            restored.addLast(piece)
+        }
         target.endBatch()
         val undone = if (slideUndone) undoing?.inserted?.trimEnd().orEmpty() else ""
-        keyboard?.deletedText = undone + deleted.reversed().joinToString("")
+        keyboard?.deletedText = undone + (carried + deleted).reversed().joinToString("")
     }
 
     /**
@@ -368,6 +387,21 @@ class HexInputMethod : InputMethodService() {
     /** Where the cursor was when the last slide ended, which its text goes back to. */
     private var undoAt = -1
 
+    /**
+     * What the slides right before the one under way took and it has not put
+     * back, first taken first, which its undo puts back too; and what it has
+     * put back of them, going back past its start.
+     */
+    private val carried = ArrayDeque<String>()
+    private val restored = ArrayDeque<String>()
+
+    /** What the undo puts back, as [deleted] has it: first taken first. */
+    private var undoPieces: List<String> = emptyList()
+
+    /** Whether what the last slides took can still be put back: nothing else was done and the cursor stayed. */
+    private fun restorable(): Boolean =
+        keyboard?.undoText?.isNotEmpty() == true && frame?.searching != true && !editor.hasSelection && editor.selectionStart == undoAt
+
     /** Puts back what the last delete slide took, where the cursor still is. */
     private fun undoDelete() {
         val view = keyboard ?: return
@@ -393,11 +427,14 @@ class HexInputMethod : InputMethodService() {
         if (!sliding) return
         sliding = false
         // How the slide went, for the debug log: the most letters it took, the letters
-        // and words it ended with, and what the letters and words zones span.
-        keyboard?.note("slid", "$slidePeakLetters $deletedCharacters ${deleted.size - deletedCharacters} $slideLetters $slideWords")
+        // and words it ended with, what the letters and words zones span, and how many
+        // pieces of the slides before it put back.
+        keyboard?.note("slid", "$slidePeakLetters $deletedCharacters ${deleted.size - deletedCharacters} $slideLetters $slideWords ${restored.size}")
         // What the slide took is offered to put back, while the cursor stays where it left it.
-        if (deleted.isNotEmpty() && !slideUndone) {
-            keyboard?.undoText = deleted.reversed().joinToString("")
+        undoPieces = carried + if (slideUndone) emptyList() else deleted
+        carried.clear()
+        if (undoPieces.isNotEmpty()) {
+            keyboard?.undoText = undoPieces.reversed().joinToString("")
             undoAt = editor.selectionStart
         }
         val preferences = Dictionaries.preferences(this)
@@ -573,7 +610,7 @@ class HexInputMethod : InputMethodService() {
     private fun perform(kind: String, text: String) {
         if (kind != "delete" && kind != "nothing" && kind != "redraw") endSlide()
         // Anything else done puts the last slide's text beyond putting back.
-        if (kind != "nothing" && kind != "redraw") keyboard?.undoText = ""
+        if (kind != "nothing" && kind != "redraw" && kind != "delete") keyboard?.undoText = ""
         if (currentInputConnection == null) return
         if (frame?.searching == true) {
             searchKey(kind, text)
@@ -722,6 +759,7 @@ class HexInputMethod : InputMethodService() {
         // A view made anew, as on rotating, shows the languages before any suggestion does.
         showLanguage(language)
         view.logContext = { if (suggesting && currentInputConnection != null) editor.textBefore() else null }
+        view.restorable = { restorable() }
         view.charBefore = {
             when {
                 frame?.searching == true -> queryText.textBefore().lastOrNull()
