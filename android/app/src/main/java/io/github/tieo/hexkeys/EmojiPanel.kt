@@ -62,6 +62,20 @@ class EmojiPanel(
     private val bottom = PanelKeys(context, onClose, onSpace, onBackspace)
     private var theme = Theme.current(context)
 
+    /** Whether there is a number row for the search's results to take the place of. */
+    var searchable = true
+        set(value) {
+            if (field == value) return
+            field = value
+            if (rows.isNotEmpty()) buildBar()
+        }
+
+    /** The recently used the rows were built with; the rows are built again only when they changed. */
+    private var builtRecent: List<String>? = null
+
+    /** The app's language the rows' group names were written in. */
+    private var builtLanguage = ""
+
     init {
         orientation = VERTICAL
         // Touches between the panel's controls must not reach the keys underneath.
@@ -89,14 +103,6 @@ class EmojiPanel(
         apply(theme)
     }
 
-    /** Whether there is a number row for the search's results to take the place of. */
-    var searchable = true
-        set(value) {
-            if (field == value) return
-            field = value
-            if (rows.isNotEmpty()) buildBar()
-        }
-
     /** Follows the keyboard's theme; the same theme again changes nothing. */
     fun apply(theme: Theme) {
         if (theme == this.theme && rows.isNotEmpty()) return
@@ -107,12 +113,6 @@ class EmojiPanel(
         buildBar()
         open()
     }
-
-    /** The recently used the rows were built with; the rows are built again only when they changed. */
-    private var builtRecent: List<String>? = null
-
-    /** The app's language the rows' group names were written in. */
-    private var builtLanguage = ""
 
     /** Opens at the top: the recently used, or the first group when there are none. */
     fun open() {
