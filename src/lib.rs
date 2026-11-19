@@ -861,8 +861,12 @@ enum Shift {
     Off,
     /// The next letter is upper case, then shift turns off.
     Once,
-    /// Every letter is upper case until shift is tapped again: shift held.
+    /// Every letter is upper case until shift is tapped again: shift held,
+    /// or a flick up on space.
     Locked,
+    /// Every letter is upper case to the end of the word: two capitals
+    /// flicked in a row.
+    Word,
 }
 
 /// The alternatives a long press offers, shown as a row of cells above the
@@ -1145,10 +1149,13 @@ pub struct Keyboard {
     pub taps: Taps,
     /// Whether the slides just before can still be put back, which a delete
     /// slide does going back past its start: one can then also start
-    /// outwards, towards the edge.
+    /// outwards, towards the edge, anywhere on the number row.
     pub restorable: bool,
     /// What the cursor follows when the next touch comes down.
     pub follows: Follows,
+    /// Capitals flicked in a row just now, two of which keep capitals on to
+    /// the end of the word.
+    capitals_flicked: u8,
 }
 
 /// The character before the cursor, as far as it leans the taps at the
@@ -1229,6 +1236,7 @@ impl Keyboard {
             strip: 0.0,
             taps: Taps::default(),
             follows: Follows::Other,
+            capitals_flicked: 0,
             restorable: false,
         }
     }
@@ -1428,7 +1436,7 @@ impl Keyboard {
         match self.shift {
             Shift::Off => 0,
             Shift::Once => 1,
-            Shift::Locked => 2,
+            Shift::Locked | Shift::Word => 2,
         }
     }
 
@@ -1513,7 +1521,8 @@ impl Keyboard {
             return if changed { moved } else { Action::Nothing };
         }
         // A sideways slide from the number row's middle moves the cursor at once.
-        if self.in_cursor_zone(touch.start)
+        if touch.deleting.is_none()
+            && self.in_cursor_zone(touch.start)
             && (at.x - touch.start.x).abs() >= FLICK * w
             && (at.x - touch.start.x).abs() >= (at.y - touch.start.y).abs()
         {
@@ -1536,9 +1545,12 @@ impl Keyboard {
         let inwards = self.inwards(&touch, at);
         let mut action = Action::Nothing;
         let mut started = false;
+        // With the slides before to put back, a slide from anywhere on the number
+        // row towards the edge goes back over them, as a finger lifted where a
+        // slide ended takes it up again.
         if touch.deleting.is_none()
-            && touch.at_edge
-            && (inwards >= FLICK * w || self.restorable && -inwards >= RESTORE_START * w)
+            && (touch.at_edge || self.restorable && inwards < 0.0)
+            && (inwards >= FLICK * w || self.restorable && touch.start.y < self.layout.numbers_bottom && -inwards >= RESTORE_START * w)
             && (at.x - touch.start.x).abs() >= (at.y - touch.start.y).abs()
         {
             touch.deleting = Some(Deleting { letters: 0, words: 0, endless: 0, endless_at: None });
@@ -1586,6 +1598,37 @@ impl Keyboard {
     }
 
     pub fn touch_up(&mut self, at: Point, time: u64) -> Action {
+        let before = self.shift;
+        let action = self.release(at, time);
+        self.follow_capitals(&action, before);
+        action
+    }
+
+    /// Two capitals flicked in a row keep capitals on to the end of the word,
+    /// which anything but a letter ends; deleting leaves the word going.
+    fn follow_capitals(&mut self, action: &Action, before: Shift) {
+        match action {
+            Action::Commit(text) if text.chars().count() == 1 && text.chars().all(char::is_alphabetic) => {
+                if before == Shift::Off && text.chars().all(char::is_uppercase) {
+                    self.capitals_flicked += 1;
+                    if self.capitals_flicked >= 2 && self.shift == Shift::Off {
+                        self.shift = Shift::Word;
+                    }
+                } else {
+                    self.capitals_flicked = 0;
+                }
+            }
+            Action::Redraw | Action::Nothing | Action::Backspace | Action::Delete { .. } => {}
+            _ => {
+                self.capitals_flicked = 0;
+                if self.shift == Shift::Word {
+                    self.shift = Shift::Off;
+                }
+            }
+        }
+    }
+
+    fn release(&mut self, at: Point, time: u64) -> Action {
         if self.popup.is_some() {
             self.touch = None;
             return self.popup_release();
@@ -1597,7 +1640,25 @@ impl Keyboard {
         }
         let gesture = self.gesture(&touch);
         let label = self.layout.keys[touch.key].label.clone();
+        // With capitals on, a flick down goes back to small letters, on a
+        // letter typing it small, as a flick up types a capital.
+        let w = self.layout.cell_width;
+        let (dx, dy) = (touch.at.x - touch.start.x, touch.at.y - touch.start.y);
+        if matches!(self.shift, Shift::Locked | Shift::Word)
+            && touch.deleting.is_none()
+            && touch.extent < w
+            && dy >= FLICK * w
+            && dy > dx.abs()
+        {
+            self.shift = Shift::Off;
+            return if self.on_letters(&label) { Action::Commit(label) } else { Action::Redraw };
+        }
         match gesture {
+            // A flick up on space locks capitals, and another unlocks them.
+            Gesture::Up if label == "space" => {
+                self.shift = if self.shift == Shift::Locked { Shift::Off } else { Shift::Locked };
+                Action::Redraw
+            }
             // A flick in from the edge, too quick to have counted a letter yet, takes one.
             Gesture::Delete
                 if touch.deleting.is_some_and(|deleting| (deleting.letters, deleting.words) == (0, 0))
@@ -2352,6 +2413,39 @@ mod tests {
     }
 
     #[test]
+    fn capitals_lock_by_a_flick_up_on_space_or_two_flicked_capitals_and_a_flick_down_ends_them() {
+        let mut keyboard = Keyboard::new(space_middle(), 1008.0, 1.0, 400);
+        let up = [(0.0, -0.6)];
+        let down = [(0.0, 0.6)];
+        // A flick up on space locks capitals: taps type them, spaces too go on.
+        assert_eq!(gesture(&mut keyboard, "space", &up), Action::Redraw);
+        assert_eq!(gesture(&mut keyboard, "t", &[]), Action::Commit("T".into()));
+        assert_eq!(gesture(&mut keyboard, "space", &[]), Action::Commit(" ".into()));
+        assert_eq!(gesture(&mut keyboard, "a", &[]), Action::Commit("A".into()));
+        // A flick down types the letter small and ends them.
+        assert_eq!(gesture(&mut keyboard, "l", &down), Action::Commit("l".into()));
+        assert_eq!(gesture(&mut keyboard, "k", &[]), Action::Commit("k".into()));
+        // Another flick up on space after locking unlocks.
+        gesture(&mut keyboard, "space", &up);
+        assert_eq!(gesture(&mut keyboard, "space", &up), Action::Redraw);
+        assert_eq!(gesture(&mut keyboard, "e", &[]), Action::Commit("e".into()));
+        // A flick down without capitals on types nothing new: as before, a tap.
+        assert_eq!(gesture(&mut keyboard, "d", &down), Action::Commit("d".into()));
+        gesture(&mut keyboard, "space", &[]);
+        // Two capitals flicked in a row keep capitals to the end of the word.
+        assert_eq!(gesture(&mut keyboard, "t", &up), Action::Commit("T".into()));
+        assert_eq!(gesture(&mut keyboard, "a", &up), Action::Commit("A".into()));
+        assert_eq!(gesture(&mut keyboard, "l", &[]), Action::Commit("L".into()));
+        assert_eq!(gesture(&mut keyboard, "k", &[]), Action::Commit("K".into()));
+        assert_eq!(gesture(&mut keyboard, "space", &[]), Action::Commit(" ".into()));
+        assert_eq!(gesture(&mut keyboard, "e", &[]), Action::Commit("e".into()), "the word ended with the space");
+        // One flicked capital is just a capital.
+        gesture(&mut keyboard, "space", &[]);
+        assert_eq!(gesture(&mut keyboard, "i", &up), Action::Commit("I".into()));
+        assert_eq!(gesture(&mut keyboard, "s", &[]), Action::Commit("s".into()));
+    }
+
+    #[test]
     fn tap_types_the_key_even_when_the_finger_drifts() {
         let mut keyboard = Keyboard::new(honeycomb(), 1008.0, 1.0, 400);
         assert_eq!(gesture(&mut keyboard, "g", &[]), Action::Commit("g".into()));
@@ -2368,7 +2462,7 @@ mod tests {
         assert_eq!(keyboard.touch_up(near(&keyboard, "g", 0.1, -0.6), 40), Action::Commit("G".into()));
         assert_eq!(keyboard.label(g), "g");
         assert_eq!(gesture(&mut keyboard, ",", &[(0.0, -0.6)]), Action::Commit(";".into()), "punctuation gives its first alternative");
-        assert_eq!(gesture(&mut keyboard, "space", &[(0.0, -0.6)]), Action::Commit(" ".into()), "where a flick up means nothing the key is typed");
+        assert_eq!(gesture(&mut keyboard, "5", &[(0.0, -0.6)]), Action::Commit("5".into()), "where a flick up means nothing the key is typed");
     }
 
     #[test]
@@ -2463,6 +2557,16 @@ mod tests {
         assert_eq!(amounts(&keyboard.touch_move(at(start), 1500)).0, 0);
         assert!(amounts(&keyboard.touch_move(at(start - 0.8 * w), 1600)).0 > 0);
         keyboard.touch_up(at(start - 0.8 * w), 1700);
+        // Where the last slide ended, in the number row's middle, a slide towards
+        // the edge puts back instead of moving the cursor; away from it, it moves the cursor.
+        let middle = 1008.0 / 2.0;
+        keyboard.touch_down(at(middle), 1800);
+        assert!(matches!(keyboard.touch_move(at(middle + 0.2 * w), 1850), Action::Delete { letters: -1, started: true, .. }));
+        assert!(amounts(&keyboard.touch_move(at(middle + 1.5 * w), 1950)).0 < -1);
+        keyboard.touch_up(at(middle + 1.5 * w), 1960);
+        keyboard.touch_down(at(middle), 1970);
+        assert!(matches!(keyboard.touch_move(at(middle - 0.5 * w), 1990), Action::Cursor { .. }));
+        keyboard.touch_up(at(middle - 0.5 * w), 1995);
         // A slide in that comes back past where it started goes on putting back.
         keyboard.touch_down(at(start), 2000);
         keyboard.touch_move(at(start - 0.5 * w), 2200);
