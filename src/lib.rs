@@ -956,6 +956,10 @@ pub const DELETE_ENDLESS_OFF: u32 = 100;
 /// ones are swiped this fast.
 const FAST_MS: u64 = 150;
 
+/// How much more a stroke up or down on a key has to go along than across
+/// to lock or unlock capitals.
+const STRAIGHT: f32 = 1.4;
+
 /// How far a quick stroke may bend and still count as straight, in key widths.
 const FAST_BEND: f32 = 0.35;
 
@@ -1153,9 +1157,12 @@ pub struct Keyboard {
     pub restorable: bool,
     /// What the cursor follows when the next touch comes down.
     pub follows: Follows,
-    /// Capitals flicked in a row just now, two of which keep capitals on to
-    /// the end of the word.
+    /// Capitals flicked in a row from the start of the word, two of which
+    /// keep capitals on to its end.
     capitals_flicked: u8,
+    /// Whether the word typed has a small letter, after which flicked
+    /// capitals stay single ones.
+    word_has_small: bool,
 }
 
 /// The character before the cursor, as far as it leans the taps at the
@@ -1237,6 +1244,7 @@ impl Keyboard {
             taps: Taps::default(),
             follows: Follows::Other,
             capitals_flicked: 0,
+            word_has_small: false,
             restorable: false,
         }
     }
@@ -1604,23 +1612,25 @@ impl Keyboard {
         action
     }
 
-    /// Two capitals flicked in a row keep capitals on to the end of the word,
-    /// which anything but a letter ends; deleting leaves the word going.
+    /// Two capitals flicked in a row at a word's start keep capitals on to its
+    /// end, which anything but a letter ends; deleting leaves the word going.
     fn follow_capitals(&mut self, action: &Action, before: Shift) {
         match action {
             Action::Commit(text) if text.chars().count() == 1 && text.chars().all(char::is_alphabetic) => {
-                if before == Shift::Off && text.chars().all(char::is_uppercase) {
+                if before == Shift::Off && text.chars().all(char::is_uppercase) && !self.word_has_small {
                     self.capitals_flicked += 1;
                     if self.capitals_flicked >= 2 && self.shift == Shift::Off {
                         self.shift = Shift::Word;
                     }
                 } else {
                     self.capitals_flicked = 0;
+                    self.word_has_small |= text.chars().all(char::is_lowercase);
                 }
             }
             Action::Redraw | Action::Nothing | Action::Backspace | Action::Delete { .. } => {}
             _ => {
                 self.capitals_flicked = 0;
+                self.word_has_small = false;
                 if self.shift == Shift::Word {
                     self.shift = Shift::Off;
                 }
@@ -1640,25 +1650,23 @@ impl Keyboard {
         }
         let gesture = self.gesture(&touch);
         let label = self.layout.keys[touch.key].label.clone();
-        // With capitals on, a flick down goes back to small letters, on a
-        // letter typing it small, as a flick up types a capital.
+        // A straight stroke up or down of any length: the phone's log has
+        // them from a third of a key to more than two keys long.
         let w = self.layout.cell_width;
         let (dx, dy) = (touch.at.x - touch.start.x, touch.at.y - touch.start.y);
-        if matches!(self.shift, Shift::Locked | Shift::Word)
-            && touch.deleting.is_none()
-            && touch.extent < w
-            && dy >= FLICK * w
-            && dy > dx.abs()
-        {
+        let straight = touch.deleting.is_none() && dy.abs() >= FLICK * w && dy.abs() > STRAIGHT * dx.abs();
+        // With capitals on, a stroke down goes back to small letters, on a
+        // letter typing it small, as a stroke up types a capital.
+        if straight && dy > 0.0 && matches!(self.shift, Shift::Locked | Shift::Word) {
             self.shift = Shift::Off;
             return if self.on_letters(&label) { Action::Commit(label) } else { Action::Redraw };
         }
+        // A stroke up on space locks capitals, and another unlocks them.
+        if straight && dy < 0.0 && label == "space" {
+            self.shift = if self.shift == Shift::Locked { Shift::Off } else { Shift::Locked };
+            return Action::Redraw;
+        }
         match gesture {
-            // A flick up on space locks capitals, and another unlocks them.
-            Gesture::Up if label == "space" => {
-                self.shift = if self.shift == Shift::Locked { Shift::Off } else { Shift::Locked };
-                Action::Redraw
-            }
             // A flick in from the edge, too quick to have counted a letter yet, takes one.
             Gesture::Delete
                 if touch.deleting.is_some_and(|deleting| (deleting.letters, deleting.words) == (0, 0))
@@ -2439,6 +2447,16 @@ mod tests {
         assert_eq!(gesture(&mut keyboard, "k", &[]), Action::Commit("K".into()));
         assert_eq!(gesture(&mut keyboard, "space", &[]), Action::Commit(" ".into()));
         assert_eq!(gesture(&mut keyboard, "e", &[]), Action::Commit("e".into()), "the word ended with the space");
+        // Long strokes count as well, as the phone's log has them: up on space, down on a letter.
+        assert_eq!(gesture(&mut keyboard, "space", &[(0.1, -1.4), (0.2, -2.8)]), Action::Redraw);
+        assert_eq!(gesture(&mut keyboard, "o", &[]), Action::Commit("O".into()));
+        assert_eq!(gesture(&mut keyboard, "h", &[(0.0, 1.0), (0.05, 2.0)]), Action::Commit("h".into()));
+        assert_eq!(gesture(&mut keyboard, "i", &[]), Action::Commit("i".into()));
+        // Capitals flicked after small letters in a word stay single ones.
+        assert_eq!(gesture(&mut keyboard, "u", &up), Action::Commit("U".into()));
+        assert_eq!(gesture(&mut keyboard, "u", &up), Action::Commit("U".into()));
+        assert_eq!(gesture(&mut keyboard, "t", &[]), Action::Commit("t".into()));
+        gesture(&mut keyboard, "space", &[]);
         // One flicked capital is just a capital.
         gesture(&mut keyboard, "space", &[]);
         assert_eq!(gesture(&mut keyboard, "i", &up), Action::Commit("I".into()));
