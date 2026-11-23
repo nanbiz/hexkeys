@@ -915,6 +915,10 @@ const DELETE_FLICK: f32 = 0.45;
 /// than it means to.
 const RESTORE_SLACK: f32 = 0.25;
 
+/// How far below the number row, in key widths, the top row's key at the
+/// delete edge starts delete slides.
+const DELETE_BELOW: f32 = 0.25;
+
 /// How far back past its start, in key widths, a delete slide goes before
 /// it puts back what the slides right before it took, and how far out a
 /// slide that does only that has to start moving. Slides start about three
@@ -955,6 +959,11 @@ pub const DELETE_ENDLESS_OFF: u32 = 100;
 /// in FUTO's swipe dataset 7% of two-letter words and almost no longer
 /// ones are swiped this fast.
 const FAST_MS: u64 = 150;
+
+/// How far above the number row's lower edge, in key widths, a stroke from
+/// the top row ends to be a capital whatever its slant: words that end on
+/// the top row came up to 0.1 into the number row in the phone's log.
+const CAPITAL_ABOVE: f32 = 0.3;
 
 /// How much more a stroke up or down on a key has to go along than across
 /// to lock or unlock capitals.
@@ -1310,6 +1319,18 @@ impl Keyboard {
         if dx.hypot(dy) >= FLICK * w && dx.abs() >= dy.abs() && self.layout.keys[touch.key].label == "space" {
             return Gesture::Sideways;
         }
+        // A stroke from the top row that ends well up in the number row is a
+        // capital, however it slants: every word ends on a letter, and the
+        // phone's log had quick flicks up and over to the right read as
+        // swiped words.
+        let key = &self.layout.keys[touch.key];
+        if key.row == 0
+            && self.on_letters(&key.label)
+            && dy < -FLICK * w
+            && touch.at.y < self.layout.numbers_bottom - CAPITAL_ABOVE * w
+        {
+            return Gesture::Up;
+        }
         if touch.extent >= w {
             return self.quick(touch).unwrap_or(Gesture::Path);
         }
@@ -1345,9 +1366,21 @@ impl Keyboard {
     /// on the delete side. Swipe typing never starts there, so a slide
     /// cannot be mistaken for a swiped word; anywhere on the letters a
     /// word's path from the edge column looked like one.
+    ///
+    /// Just below the number row, the top row's key at the delete edge starts
+    /// them too: the phone's log had slides meant as deletes start there and
+    /// come out as swiped words, oz and oil from o, ten times as often as
+    /// words really swiped from there.
     fn in_delete_zone(&self, at: Point) -> bool {
         let third = self.layout.width / 3.0;
-        at.y < self.layout.numbers_bottom && if self.gestures.delete_from_left { at.x < third } else { at.x > 2.0 * third }
+        let side = if self.gestures.delete_from_left { at.x < third } else { at.x > 2.0 * third };
+        let edge = self.layout.numbers_bottom;
+        if at.y < edge || !side || at.y >= edge + DELETE_BELOW * self.layout.cell_width {
+            return at.y < edge && side;
+        }
+        let outermost = |key: &&Key| key.cells.first().map_or(0.0, |cell| self.edge_distance(cell.x));
+        let corner = self.layout.keys.iter().filter(|key| key.row == 0 && self.on_letters(&key.label)).min_by(|a, b| outermost(a).total_cmp(&outermost(b)));
+        corner.is_some_and(|corner| self.layout.key_at(at).is_some_and(|key| std::ptr::eq(key, corner)))
     }
 
     /// Which way the cursor steps on by itself while the finger moving it
@@ -2457,6 +2490,9 @@ mod tests {
         assert_eq!(gesture(&mut keyboard, "u", &up), Action::Commit("U".into()));
         assert_eq!(gesture(&mut keyboard, "t", &[]), Action::Commit("t".into()));
         gesture(&mut keyboard, "space", &[]);
+        // A quick stroke up and over to the right from the top row, out above the letters, is a capital too.
+        assert_eq!(gesture(&mut keyboard, "t", &[(0.5, -0.6), (1.1, -1.3)]), Action::Commit("T".into()));
+        gesture(&mut keyboard, "space", &[]);
         // One flicked capital is just a capital.
         gesture(&mut keyboard, "space", &[]);
         assert_eq!(gesture(&mut keyboard, "i", &up), Action::Commit("I".into()));
@@ -2551,6 +2587,32 @@ mod tests {
             Action::Delete { letters, words, endless, .. } => (*letters, *words, *endless),
             other => panic!("no delete: {other:?}"),
         }
+    }
+
+    #[test]
+    fn a_slide_from_the_top_of_the_edge_key_deletes_and_one_from_lower_down_swipes() {
+        let mut keyboard = Keyboard::new(space_middle(), 1008.0, 1.0, 400);
+        let w = keyboard.layout.cell_width;
+        let edge = keyboard.layout.numbers_bottom;
+        let o = near(&keyboard, "o", 0.0, 0.0);
+        // As in the phone's log: on o, just under the number row, sliding left.
+        let top = Point { x: o.x + 0.2 * w, y: edge + 0.1 * w };
+        keyboard.touch_down(top, 0);
+        assert!(matches!(keyboard.touch_move(Point { x: top.x - 0.8 * w, y: top.y }, 300), Action::Delete { started: true, .. }));
+        keyboard.touch_up(Point { x: top.x - 0.8 * w, y: top.y }, 350);
+        // Lower down on o the slide is a swiped word, and a tap there types o.
+        let lower = Point { x: o.x, y: edge + 0.4 * w };
+        keyboard.touch_down(lower, 1000);
+        assert_eq!(keyboard.touch_move(Point { x: lower.x - 0.8 * w, y: lower.y }, 1300), Action::Nothing);
+        keyboard.touch_cancel();
+        assert_eq!(gesture(&mut keyboard, "o", &[]), Action::Commit("o".into()));
+        keyboard.touch_down(top, 2000);
+        assert_eq!(keyboard.touch_up(top, 2050), Action::Commit("o".into()), "a tap at its top still types o");
+        // i, next to it, swipes as always.
+        let i = near(&keyboard, "i", 0.0, 0.0);
+        let high = Point { x: i.x, y: edge + 0.1 * w };
+        keyboard.touch_down(high, 3000);
+        assert_eq!(keyboard.touch_move(Point { x: high.x - 0.8 * w, y: high.y }, 3300), Action::Nothing);
     }
 
     #[test]
