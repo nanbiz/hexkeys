@@ -190,7 +190,7 @@ class HexInputMethod : InputMethodService() {
             for ((index, file) in added.withIndex()) {
                 Dictionaries.readContexts(this, file)?.let { Core.lexiconContexts(fresh, index, it) }
             }
-            val accents = Core.lexiconAccents(fresh, -1)
+            val accents = Core.lexiconAccents(fresh)
             Core.lexiconPrepare(fresh)
             Core.words.execute {
                 if (lexicon == 0L) {
@@ -1173,17 +1173,6 @@ class HexInputMethod : InputMethodService() {
 
     /** Shows the language on the space bar, dim while it is only a guess. */
     private fun showLanguage(index: Int?) {
-        // Holding a letter offers the language in use's accents first.
-        if (index != language) {
-            Core.words.execute {
-                if (lexicon == 0L) return@execute
-                val accents = Core.lexiconAccents(lexicon, index ?: -1)
-                mainExecutor.execute {
-                    this.accents = accents
-                    keyboard?.accents = accents
-                }
-            }
-        }
         language = index
         val codes = lexiconFiles.map { languageCode(it).uppercase() }
         val ranked = ranking.mapNotNull { codes.getOrNull(it) }
@@ -1267,10 +1256,16 @@ class HexInputMethod : InputMethodService() {
             if (request != stripRequest || letters == 0L) return@execute
             val started = SystemClock.uptimeMillis()
             val strip = Core.strip(lexicon, letters, whole)
+            // Holding a letter offers the accents of the languages the text is in first.
+            val accents = Core.lexiconAccents(lexicon)
             val took = SystemClock.uptimeMillis() - started
             mainExecutor.execute {
                 view.slow("suggest (words thread)", took)
                 if (request == stripRequest) {
+                    if (accents != this.accents) {
+                        this.accents = accents
+                        view.accents = accents
+                    }
                     view.showStrip(before, strip)
                     ranking = strip.getOrNull(8)?.split(',')?.mapNotNull { it.toIntOrNull() }.orEmpty()
                     showLanguage(strip.getOrNull(7)?.toIntOrNull()?.takeIf { it >= 0 })

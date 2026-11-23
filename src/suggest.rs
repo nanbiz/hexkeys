@@ -305,14 +305,20 @@ const OWN_ACCENT: f64 = 0.001;
 /// How many of the last words written tell the language.
 const CONTEXT_WORDS: usize = 6;
 
+/// How much more common a word several dictionaries have must be in one of
+/// them, in frequency steps, to tell that language: Spanish lists German
+/// das, diese and ja at 109, 90 and 88 where German has them at 231, 193
+/// and 172, while words two languages really share sit close together.
+const SHARED_LEAD: u8 = 40;
+
 impl Lexicon {
     pub fn new(dictionaries: Vec<Dictionary>) -> Self {
         Self { dictionaries, ..Self::default() }
     }
 
     /// Works out the language of the text before the cursor from its last
-    /// whole words that only one dictionary has, and boosts that
-    /// dictionary's words by their share of them.
+    /// whole words that only one dictionary has, or one far more often than
+    /// the others, and boosts that dictionary's words by their share of them.
     pub fn set_context(&mut self, before: &str) {
         let complete = before.trim_end_matches(in_word);
         let words: Vec<&str> =
@@ -320,14 +326,20 @@ impl Lexicon {
         let mut counts = vec![0f32; self.dictionaries.len()];
         for word in words {
             let lower = word.to_lowercase();
-            let knowing: Vec<usize> = (0..self.dictionaries.len())
-                .filter(|&d| {
+            let knowing: Vec<(usize, u8)> = (0..self.dictionaries.len())
+                .filter_map(|d| {
                     [word, lower.as_str()]
                         .iter()
-                        .any(|form| self.dictionaries[d].find(form).ok().flatten().is_some_and(|node| !node.hidden))
+                        .filter_map(|form| self.dictionaries[d].find(form).ok().flatten().filter(|node| !node.hidden))
+                        .filter_map(|node| node.frequency)
+                        .max()
+                        .map(|frequency| (d, frequency))
                 })
                 .collect();
-            if let [only] = knowing[..] {
+            // The one dictionary that has the word, or has it far more often than the rest.
+            let most = knowing.iter().map(|&(_, f)| f).max().unwrap_or(0);
+            let leading: Vec<usize> = knowing.iter().filter(|&&(_, f)| f.saturating_add(SHARED_LEAD) > most).map(|&(d, _)| d).collect();
+            if let [only] = leading[..] {
                 counts[only] += 1.0;
             }
         }
@@ -415,11 +427,27 @@ impl Lexicon {
     }
 
     /// [`Lexicon::accents`] with the accents dictionary `first` uses ranked
-    /// ahead of the others, by how much that language uses them: with
-    /// German being written ä ö ü come first, with French é è à. Only
-    /// accents a language really writes count as its own, [`OWN_ACCENT`] of
-    /// its text or more: English's loanword á stays behind German's ä.
+    /// ahead of the others.
     pub fn accents_for(&self, first: Option<usize>) -> Result<HashMap<char, Vec<char>>, Error> {
+        self.accents_preferring(first.as_slice())
+    }
+
+    /// [`Lexicon::accents`] for the text written: the accents of the language
+    /// in use first, then those of every other language the last words are
+    /// in, by how many of them it has. A German sentence with a few English
+    /// words in it, which English may lead, still offers ä before Spanish á.
+    pub fn accents_in_context(&self) -> Result<HashMap<char, Vec<char>>, Error> {
+        let preferred: Vec<usize> =
+            self.ranking().into_iter().filter(|&d| Some(d) == self.language() || self.boost(d) > 0.0).collect();
+        self.accents_preferring(&preferred)
+    }
+
+    /// [`Lexicon::accents`] with the accents of the `preferred` dictionaries
+    /// ranked ahead, in their order, each by how much that language uses
+    /// them: with German being written ä ö ü come first, with French é è à.
+    /// Only accents a language really writes count as its own, [`OWN_ACCENT`]
+    /// of its text or more: English's loanword á stays behind German's ä.
+    fn accents_preferring(&self, preferred: &[usize]) -> Result<HashMap<char, Vec<char>>, Error> {
         let uses = self.accent_uses()?;
         let mut total: HashMap<char, f64> = HashMap::new();
         for shares in uses {
@@ -427,19 +455,24 @@ impl Lexicon {
                 *total.entry(c).or_insert(0.0) += share;
             }
         }
-        let preferred = first.and_then(|d| uses.get(d));
-        let mut accents: HashMap<char, Vec<(char, f64, f64)>> = HashMap::new();
+        // Which preferred language owns an accent first, and how much it uses it.
+        let owner = |c: char| {
+            preferred.iter().enumerate().find_map(|(rank, &d)| {
+                uses.get(d).and_then(|shares| shares.get(&c)).copied().filter(|&share| share >= OWN_ACCENT).map(|share| (rank, share))
+            })
+        };
+        let mut accents: HashMap<char, Vec<(char, usize, f64, f64)>> = HashMap::new();
         for (&c, &used) in &total {
             if let Some(base) = plain(c) {
-                let own = preferred.and_then(|shares| shares.get(&c)).copied().filter(|&share| share >= OWN_ACCENT).unwrap_or(0.0);
-                accents.entry(base).or_default().push((c, own, used));
+                let (rank, own) = owner(c).unwrap_or((preferred.len(), 0.0));
+                accents.entry(base).or_default().push((c, rank, own, used));
             }
         }
         Ok(accents
             .into_iter()
             .map(|(base, mut letters)| {
-                letters.sort_by(|a, b| b.1.total_cmp(&a.1).then(b.2.total_cmp(&a.2)).then(a.0.cmp(&b.0)));
-                (base, letters.into_iter().take(MAX_ACCENTS).map(|(c, _, _)| c).collect())
+                letters.sort_by(|a, b| a.1.cmp(&b.1).then(b.2.total_cmp(&a.2)).then(b.3.total_cmp(&a.3)).then(a.0.cmp(&b.0)));
+                (base, letters.into_iter().take(MAX_ACCENTS).map(|(c, ..)| c).collect())
             })
             .collect())
     }
@@ -918,6 +951,22 @@ mod tests {
         let lexicon = Lexicon::new(vec![french, portuguese]);
         assert_eq!(lexicon.accents_for(None).unwrap()[&'a'], ['à', 'â']);
         assert_eq!(lexicon.accents_for(Some(1)).unwrap()[&'a'], ['â', 'à']);
+    }
+
+    #[test]
+    fn every_language_in_the_text_puts_its_accents_ahead_of_others() {
+        let english = Dictionary::new(encode(&[("street", 200), ("view", 200), ("challenge", 150), ("the", 255)], &[])).unwrap();
+        let german = Dictionary::new(encode(&[("das", 250), ("diese", 200), ("für", 230), ("März", 180)], &[])).unwrap();
+        let spanish = Dictionary::new(encode(&[("está", 250), ("más", 240), ("allá", 200), ("qué", 200)], &[])).unwrap();
+        let mut lexicon = Lexicon::new(vec![english, german, spanish]);
+        // As on the phone: a German sentence whose last words are mostly English.
+        lexicon.set_context("diese challenge das street view ");
+        assert_eq!(lexicon.language(), Some(0));
+        assert_eq!(lexicon.accents_for(None).unwrap()[&'a'][0], 'á', "by use alone Spanish leads");
+        assert_eq!(lexicon.accents_in_context().unwrap()[&'a'][0], 'ä', "German is in the text, Spanish is not");
+        // Spanish written, its accents come first.
+        lexicon.set_context("qué más está ");
+        assert_eq!(lexicon.accents_in_context().unwrap()[&'a'][0], 'á');
     }
 
     #[test]

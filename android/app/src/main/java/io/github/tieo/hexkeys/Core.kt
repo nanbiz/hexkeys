@@ -168,8 +168,8 @@ object Core {
     external fun trail(handle: Long): FloatArray
 
 
-    /** The accented letters of the lexicon's languages, as "a:ä;o:ö", those of dictionary [first] ahead (-1 for none); slow the first time, call it off the main thread. */
-    external fun lexiconAccents(lexicon: Long, first: Int): String
+    /** The accented letters of the lexicon's languages, as "a:ä;o:ö", those of the languages the last text given to [strip] is in ahead; slow the first time, call it off the main thread. */
+    external fun lexiconAccents(lexicon: Long): String
 
     /** Sets what holding a letter offers, in the form [lexiconAccents] returns. */
     external fun setAccents(handle: Long, accents: String)

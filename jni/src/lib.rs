@@ -670,17 +670,18 @@ pub extern "system" fn Java_io_github_tieo_hexkeys_Core_deleteBorders(env: JNIEn
 }
 
 /// The accented letters of the lexicon's languages by plain letter, as
-/// "a:ä;o:ö;s:ß", most used first, those of dictionary `first` ahead when
-/// it is not -1. The first call counts through every word, which takes a
-/// while on large dictionaries: call it off the main thread.
+/// "a:ä;o:ö;s:ß", most used first, those of the languages the text last
+/// written is in ahead. The first call counts through every word, which
+/// takes a while on large dictionaries: call it off the main thread.
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_io_github_tieo_hexkeys_Core_lexiconAccents(
     env: JNIEnv,
     _class: JClass,
     handle: jlong,
-    first: jint,
 ) -> jstring {
-    let accents = lexicon(handle).accents_for(usize::try_from(first).ok()).unwrap_or_default();
+    let mut accents: Vec<_> = lexicon(handle).accents_in_context().unwrap_or_default().into_iter().collect();
+    // In a steady order, so the same accents give the same text.
+    accents.sort();
     let text: Vec<String> =
         accents.iter().map(|(letter, accented)| format!("{letter}:{}", accented.iter().collect::<String>())).collect();
     env.new_string(text.join(";")).expect("string").into_raw()
