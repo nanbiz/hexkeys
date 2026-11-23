@@ -664,6 +664,17 @@ class HexInputMethod : InputMethodService() {
                     lastCorrection = Correction(typed + text, word + text, typed)
                     keyboard?.note("corrected", "$typed -> $word")
                     if (mode != "off") amend(typedBefore + text)
+                } else if (text in CLOSING_PUNCTUATION && !connection.hasSelection && connection.wordAfter().isEmpty() &&
+                    typedBefore.length >= 2 && typedBefore.endsWith(" ") && !typedBefore[typedBefore.length - 2].isWhitespace()
+                ) {
+                    // Punctuation right after a word and its space goes onto the word, in
+                    // place of the space, whichever way the space came: typed, or with a
+                    // suggestion or a correction. The space after it is typed next, as before.
+                    connection.beginBatch()
+                    connection.deleteBefore(1)
+                    connection.commit(text)
+                    connection.endBatch()
+                    if (mode != "off") amend(typedBefore.dropLast(1) + text)
                 } else if (telexTyped(typedBefore, text)) {
                     // Written in Vietnamese, a letter can mark the word before it instead.
                 } else {
@@ -1310,6 +1321,12 @@ class HexInputMethod : InputMethodService() {
 
         /** What ends a word and so triggers autocorrect. */
         val SEPARATORS = setOf(" ", ".", ",", "!", "?", ";", ":")
+
+        /**
+         * Punctuation that closes a word, which a space typed before it gives way
+         * to. Colon and semicolon stay apart, as they start smileys.
+         */
+        val CLOSING_PUNCTUATION = setOf(".", ",", "!", "?")
 
         /** The last word before the cursor with the spaces after it. */
         val WORD_AT_END = Regex("\\S*\\s*$")

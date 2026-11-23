@@ -717,7 +717,30 @@ pub fn strip(lexicon: &Lexicon, before: &str, substitution: Substitution) -> Res
         }
     }
     let unknown = (!known).then(|| typed.to_owned());
+    let correction = correction.and_then(|word| in_typed_case(typed, &word));
+    let fix = fix.and_then(|word| in_typed_case(typed, &word));
     Ok(Strip { slots, replaces: typed.chars().count(), correction, unknown, fix })
+}
+
+/// A correction of `typed` in the capitals it was typed with, or none when it
+/// would change only capitals or the word was typed in capitals: on the
+/// phone most corrections only capitalised, ok to OK, btw to BTW, and a word
+/// written in caps lock was lowered, IDIOT to Idiot. The pronoun I and its
+/// contractions keep their capital, which is grammar, not a spelling.
+pub(crate) fn in_typed_case(typed: &str, word: &str) -> Option<String> {
+    let letters = typed.chars().filter(|c| c.is_alphabetic()).count();
+    if letters >= 2 && !typed.chars().any(char::is_lowercase) {
+        return None;
+    }
+    let pronoun = word == "I" || word.starts_with("I'") || word.starts_with("I’");
+    if pronoun {
+        return (word != typed).then(|| word.to_owned());
+    }
+    if word.to_lowercase() == typed.to_lowercase() {
+        return None;
+    }
+    let lower = word.to_lowercase();
+    Some(if typed.chars().next().is_some_and(char::is_uppercase) { capitalise(&lower) } else { lower })
 }
 
 /// A word reduced to what an obvious slip leaves alone: lower case, no
@@ -887,21 +910,36 @@ mod tests {
     fn obvious_slips_are_fixed_and_words_left_alone() {
         let german = german();
         let fix = |text: &str| strip(&german, text, &plain).unwrap().fix;
-        assert_eq!(fix("das haus").as_deref(), Some("Haus"));
+        assert_eq!(fix("das haus"), None, "capitals alone are no fix");
         assert_eq!(fix("uber").as_deref(), Some("über"));
-        assert_eq!(fix("strasse").as_deref(), Some("Straße"));
+        assert_eq!(fix("strasse").as_deref(), Some("straße"), "in the capitals typed");
+        assert_eq!(fix("STRASSE"), None, "a word in caps lock stays as typed");
         assert_eq!(fix("das Haus"), None, "a word as it is");
         assert_eq!(fix("die"), None);
         assert_eq!(fix("hallp"), None, "a slip of the finger is no obvious fix");
         let english = Lexicon::new(vec![Dictionary::new(encode(&[("I'm", 200), ("I", 250), ("don't", 200)], &[])).unwrap()]);
         let fix = |text: &str| strip(&english, text, &plain).unwrap().fix;
-        assert_eq!(fix("im").as_deref(), Some("I'm"));
+        assert_eq!(fix("im").as_deref(), Some("I'm"), "the pronoun keeps its capital");
         assert_eq!(fix("i").as_deref(), Some("I"));
         assert_eq!(fix("Dont").as_deref(), Some("Don't"));
+        assert_eq!(fix("IM"), None);
         let names = Lexicon::new(vec![Dictionary::new(encode(&[("Lang's", 69), ("John's", 108)], &[])).unwrap()]);
         let fix = |text: &str| strip(&names, text, &plain).unwrap().fix;
         assert_eq!(fix("langs"), None, "a rare name's possessive is no obvious fix");
-        assert_eq!(fix("johns").as_deref(), Some("John's"));
+        assert_eq!(fix("johns").as_deref(), Some("john's"));
+    }
+
+    #[test]
+    fn corrections_leave_capitals_as_typed() {
+        let english = Lexicon::new(vec![Dictionary::new(encode(&[("OK", 220), ("BTW", 180), ("idiot", 150), ("Idiot", 120), ("don't", 200)], &[])).unwrap()]);
+        let both = |text: &str| {
+            let strip = strip(&english, text, &plain).unwrap();
+            (strip.correction, strip.fix)
+        };
+        assert_eq!(both("ok"), (None, None), "ok is not made OK");
+        assert_eq!(both("btw"), (None, None));
+        assert_eq!(both("IDIOT"), (None, None), "caps lock stays");
+        assert_eq!(both("dont").1.as_deref(), Some("don't"), "a fix that is no capital still goes in");
     }
 
     #[test]

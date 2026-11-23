@@ -186,8 +186,8 @@ pub fn amend(lexicon: &Lexicon, before: &str, kept: Option<usize>) -> Option<(us
             None => continue,
         };
         let right = context(&tokens[i + 1]);
-        if let Some(word) = lexicon.respell(&lower, &left, &right) {
-            changes.push((i, if capital { capitalise(&word) } else { word }));
+        if let Some(word) = lexicon.respell(&lower, &left, &right).and_then(|word| in_plain_case(&lower, &word, capital)) {
+            changes.push((i, word));
         }
     }
     // Once the text is surely in one language, the words further back that
@@ -199,8 +199,8 @@ pub fn amend(lexicon: &Lexicon, before: &str, kept: Option<usize>) -> Option<(us
                 continue;
             }
             let Some((lower, capital)) = plain(i) else { continue };
-            if let Some(word) = lexicon.respell_in(language, &lower) {
-                changes.push((i, if capital { capitalise(&word) } else { word }));
+            if let Some(word) = lexicon.respell_in(language, &lower).and_then(|word| in_plain_case(&lower, &word, capital)) {
+                changes.push((i, word));
             }
         }
     }
@@ -212,6 +212,14 @@ pub fn amend(lexicon: &Lexicon, before: &str, kept: Option<usize>) -> Option<(us
     }
     let replaced = before[from..].encode_utf16().count();
     Some((replaced, text[from..].to_owned()))
+}
+
+/// A respelling of the plain word `lower` in the capitals it was typed with,
+/// a capital starting a sentence kept: none where only capitals would change,
+/// as amazon to Amazon or grad to Grad.
+fn in_plain_case(lower: &str, word: &str, capital: bool) -> Option<String> {
+    let word = crate::suggest::in_typed_case(lower, word)?;
+    Some(if capital { capitalise(&word) } else { word })
 }
 
 /// How many words and marks back from the cursor amending looks once the
